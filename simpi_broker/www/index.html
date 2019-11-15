@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#222">
+    <meta name="author" content="Patrick Goldinger">
+    <meta name="description" content="SimPi graphical output.">
+    <title>SimPi</title>
+    <link rel="stylesheet" href="fonts/google-material-icons/material-icons.css" type="text/css">
+    <link rel="stylesheet" href="styles/simpi.css" type="text/css">
+</head>
+
+<body>
+    <div id="body">
+        <div class="header">
+            <div class="group">
+                <h1>SimPi</h1>
+                <div id="status-connectivity" class="status-icon" data-state="off">
+                    <i class="mat-ico md-18 on" title="Connected to: SimPi Broker">signal_wifi_4_bar</i>
+                    <i class="mat-ico md-18 off" title="No connection to: SimPi Broker">signal_wifi_off</i>
+                </div>
+            </div>
+            <div class="group">
+                <button id="ctrl-settings" class="" title="Settings">
+                    <i class="mat-ico md-18">settings</i>
+                </button>
+                <button id="ctrl-pause" class="" title="Pause SimPi Communication">
+                    <i class="mat-ico md-18">pause</i>
+                </button>
+                <button id="ctrl-play" class="hide" title="Un-Pause SimPi Communication">
+                    <i class="mat-ico md-18">play_arrow</i>
+                </button>
+                <button id="ctrl-reset" class="red" title="Reset SimPi">
+                    <i class="mat-ico md-18">refresh</i>
+                </button>
+                <button id="ctrl-terminate" class="red" title="Terminate SimPi">
+                    <i class="mat-ico md-18">power_settings_new</i>
+                </button>
+            </div>
+        </div>
+        <div class="board" id="prefs-board">
+            <div class="board-row pref">
+                <label>Update Interval:</label>
+                <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="200">
+                <span class="unit" id="pref-update-speed-o">? ms</span>
+            </div>
+            <div class="board-row pref">
+                <label>Hostname:</label>
+                <input id="pref-hostname-i" type="text">
+            </div>
+        </div>
+        <div class="board" id="rpi-ext-board">
+            <div class="board-row leds">
+                <span class="hw part led" id="LED1" data-value="0"></span>
+                <span class="hw part led" id="LED2" data-value="0"></span>
+                <span class="hw part led" id="LED3" data-value="0"></span>
+                <span class="hw part led" id="LED4" data-value="0"></span>
+            </div>
+            <div class="board-row btns">
+                <button class="hw part btn" id="BTN1" data-value="0"></button>
+                <button class="hw part btn" id="BTN2" data-value="0"></button>
+                <button class="hw part btn" id="BTN3" data-value="0"></button>
+            </div>
+        </div>
+        <footer>&copy;2019 Patrick Goldinger - All rights reserved.</footer>
+    </div>
+    <script src="scripts/SimPi.js"></script>
+    <script src="scripts/main.js"></script>
+</body>
+
+</html>
