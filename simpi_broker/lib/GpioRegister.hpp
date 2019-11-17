@@ -33,9 +33,9 @@ class Pin {
     int read(void);
     int write(int new_state);
     int number;
+    pin_type_t type;
     std::string name;
     std::string name_special;
-    pin_type_t type;
     private:
     int __state;
 };

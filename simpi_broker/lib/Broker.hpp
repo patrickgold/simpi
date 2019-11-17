@@ -26,9 +26,9 @@ class Broker {
     std::string _setpref(std::string cmd);
     std::string _action(std::string cmd);
     private:
-    int __broker_status_code;
-    GpioRegister __gpio;
     httplib::Server __svr;
+    GpioRegister __gpio;
+    int __broker_status_code;
 };
 
 }

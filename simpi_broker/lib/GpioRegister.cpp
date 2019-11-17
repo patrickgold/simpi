@@ -8,6 +8,16 @@
 #include <string>
 #include "GpioRegister.hpp"
 
+#if defined(_WIN32) || defined(_WIN64)
+    #define TMP_PATH "simpi\\"
+    #define TMP_PATH_LEDS TMP_PATH "leds\\"
+    #define TMP_PATH_BTNS TMP_PATH "btns\\"
+#elif defined(__linux__) || defined(__linux) || defined(linux)
+    #define TMP_PATH "simpi/"
+    #define TMP_PATH_LEDS TMP_PATH "leds/"
+    #define TMP_PATH_BTNS TMP_PATH "btns/"
+#endif
+
 simpi::Pin::Pin(void) : simpi::Pin::Pin(-1) {};
 
 simpi::Pin::Pin(int _number) : simpi::Pin::Pin(_number, UNKNOWN) {};
@@ -88,7 +98,7 @@ simpi::Pin *simpi::GpioRegister::pin(int number) {
     if (hasPin(number)) {
         return &__gpio_register[number - 1];
     } else {
-        return &Pin(-1);
+        return NULL;
     }
 }
 
@@ -98,7 +108,7 @@ simpi::Pin *simpi::GpioRegister::pin(std::string name) {
             return &__gpio_register[i];
         }
     }
-    return &Pin(-1);
+    return NULL;
 }
 
 bool simpi::GpioRegister::reset(void) {

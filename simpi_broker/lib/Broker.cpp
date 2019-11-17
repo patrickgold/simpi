@@ -22,9 +22,10 @@ simpi::Broker::Broker(std::string static_dir_path)
     }
 
     __svr.Get(R"(/api/(.*))", [&](const httplib::Request &req, httplib::Response &res) {
-        #ifdef DEBUG
-        std::cout << req.target << std::endl;
-        #endif
+        //#ifdef DEBUG
+        //std::cout << req.target << std::endl;
+        //std::cout << req << std::endl;
+        //#endif
         std::string cmd = req.target.substr(5);
         std::string response;
         std::smatch _;
@@ -42,6 +43,7 @@ simpi::Broker::Broker(std::string static_dir_path)
             response = "status:fail\nvalue:-1\nerror_text:Unknown API Call";
         }
         //res.set_header("X-Content-Type-Options", "nosniff");
+        //std::cout << response << std::endl;
         res.set_content(response, "text/plain");
     });
 
@@ -69,18 +71,22 @@ std::string simpi::Broker::_getpin(std::string cmd) {
         iss >> number;
         if (iss.fail()) {
             response_pin_name = cmd_single;
-            if (__gpio.hasPin(cmd_single)) {
+            //if (__gpio.hasPin(cmd_single)) {
                 Pin *pin = __gpio.pin(cmd_single);
-                state = pin->read();
-                response_pin_number = std::to_string(pin->number);
-            }
+                if (pin != NULL) {
+                    state = pin->read();
+                    response_pin_number = std::to_string(pin->number);
+                }
+            //}
         } else {
             response_pin_number = cmd_single;
-            if (__gpio.hasPin(number)) {
+            //if (__gpio.hasPin(number)) {
                 Pin *pin = __gpio.pin(number);
-                state = pin->read();
-                response_pin_name = pin->name;
-            }
+                if (pin != NULL) {
+                    state = pin->read();
+                    response_pin_name = pin->name;
+                }
+            //}
         }
         std::string status = "fail";
         if (state > -1) {
@@ -112,18 +118,22 @@ std::string simpi::Broker::_setpin(std::string cmd) {
         iss >> number;
         if (iss.fail()) {
             response_pin_name = name;
-            if (__gpio.hasPin(name)) {
+            //if (__gpio.hasPin(name)) {
                 Pin *pin = __gpio.pin(name);
-                state = pin->write(value2);
-                response_pin_number = std::to_string(pin->number);
-            }
+                if (pin != NULL) {
+                    state = pin->write(value2);
+                    response_pin_number = std::to_string(pin->number);
+                }
+            //}
         } else {
             response_pin_number = name;
-            if (__gpio.hasPin(number)) {
+            //if (__gpio.hasPin(number)) {
                 Pin *pin = __gpio.pin(number);
-                state = pin->write(value2);
-                response_pin_name = pin->name;
-            }
+                if (pin != NULL) {
+                    state = pin->write(value2);
+                    response_pin_name = pin->name;
+                }
+            //}
         }
         std::string status = "fail";
         if (state > -1) {
