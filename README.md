@@ -1,8 +1,8 @@
 # simpi
 A tool for simulating WiringPi projects on Windows and GNU/Linux.
 
-*NOTE: this project is currently in alpha version and therefore bugs may
-happen!*
+*NOTE: this project is currently in alpha version and therefore not
+stable!*
 
 ## SimPi Broker
 
