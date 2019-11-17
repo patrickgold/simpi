@@ -9,7 +9,7 @@
 #define LED3 24
 #define LED4 25
 
-#define DELAY_TIME_MS 1000
+#define DELAY_TIME_MS 250
 
 const int LEDS[] = {LED1, LED2, LED3, LED4};
 

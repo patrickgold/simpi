@@ -13,9 +13,9 @@
 #define BTN2 27
 #define BTN3 17
 
-#define DELAY_TIME_MS 10
+#define DELAY_TIME_MS 100
 
-void check_buttons(void);
+void check_buttons(int);
 int sig_handler(int sig);
 
 int main() {
@@ -32,13 +32,17 @@ int main() {
 }
 
 void check_buttons(int t) {
+    int b1 = digitalRead(BTN1);
+    int b2 = digitalRead(BTN2);
+    int b3 = digitalRead(BTN3);
     printf(
         "BTN1=%d  BTN2=%d  BTN3=%d     \r",
-        digitalRead(BTN1),
-        digitalRead(BTN2),
-        digitalRead(BTN3)
+        b1,
+        b2,
+        b3
     );
     fflush(stdout);
+    delay(t);
 }
 
 int sig_handler(int sig) {

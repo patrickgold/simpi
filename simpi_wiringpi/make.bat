@@ -1,19 +1,20 @@
 @echo off
-if "%1"=="build" (
+if "%~1"=="build" (
     if exist ".\out\wiringPiSim.obj" (
+        set IN_SRC_FILES="test\blinky.c"
         title Building executable
         echo Building executable...
-        call ..\clenv.bat /EHsc test\blinky.c /link out\wiringPiSim.obj /out:out\wpi_test.exe
+        call ..\clenv.bat /EHsc %IN_SRC_FILES% /link out\wiringPiSim.obj /out:out\wpi_test.exe
         move *.obj out\
     ) else (
         echo Cannot build target
         echo  Reason: missing obj file '.\out\wiringPiSim.obj'.
     )
-) else if "%1"=="build-wiring-pi-sim" (
+) else if "%~1"=="build-wiring-pi-sim" (
     title Building library
     echo Building library...
     call ..\clenv.bat /c lib\wiringPi.c /Foout\wiringPiSim.obj
-) else if "%1"=="run" (
+) else if "%~1"=="run" (
     if exist ".\out\wpi_test.exe" (
         title WiringPi Test
         echo Executing '.\out\wpi_test.exe' ...
@@ -21,7 +22,7 @@ if "%1"=="build" (
     ) else (
         echo There is no available build at this time!
     )
-) else if "%1"=="help" (
+) else if "%~1"=="help" (
     echo help    - Show this help dialog.
     echo build   - Build the executable.
     echo build-wiring-pi-sim - Build the static .obj file for linking.
