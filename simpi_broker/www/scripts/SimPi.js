@@ -1,13 +1,3 @@
-const SP = Object.freeze({
-    LED1: "GPIO18",
-    LED2: "GPIO23",
-    LED3: "GPIO24",
-    LED4: "GPIO25",
-    BTN1: "GPI022",
-    BTN2: "GPIO27",
-    BTN3: "GPIO18",
-});
-
 class SimPi {
     constructor () {
         this.h2g = {
@@ -79,7 +69,7 @@ class SimPi {
             fetch("/api/action/terminate").then((response) => {
                 response.text().then((data) => {
                     let parsedData = that.parseSimPiTransferData(data);
-                    if (parsedData[0].status == "success") {
+                    if (parsedData[0].status == "SUCC") {
                         document.write("Terminated SimPi Broker. You can now close this browser tab.");
                     }
                 });
@@ -124,7 +114,7 @@ class SimPi {
                 let parsedData = that.parseSimPiTransferData(data);
                 parsedData.forEach((v, i) => {
                     if (!that.isPaused) {
-                        that.ele[that.g2h[v.pin_name]].setAttribute("data-value", v.value);
+                        that.ele[that.g2h[v.key]].setAttribute("data-value", v.value);
                     }
                 });
             });
@@ -144,13 +134,21 @@ class SimPi {
 
     parseSimPiTransferData(data) {
         let ret = [];
-        data.split("\n\n").forEach((v, i) => {
-            let retObj = {};
-            v.split("\n").forEach((v, i) => {
-                let kv = v.split(":");
-                retObj[kv[0]] = kv[1];
-            });
-            ret.push(retObj);
+        data.split("\n").forEach((v, i) => {
+            if (v.startsWith(">")) {
+                v = v.slice(1);
+                let retObj = {};
+                v.split(";").forEach((v, i) => {
+                    if (i == 0) {
+                        retObj["status"] = v;
+                    } else if (i == 1) {
+                        retObj["key"] = v;
+                    } else if (i == 2) {
+                        retObj["value"] = v;
+                    }
+                });
+                ret.push(retObj);
+            }
         });
         return ret;
     }

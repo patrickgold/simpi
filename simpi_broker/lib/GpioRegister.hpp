@@ -2,7 +2,7 @@
  * Header File for Raspberry Pi GPIO Register simulation.
  * 
  * Author: Patrick Goldinger
- * License: MIT
+ * License: GPL 3.0 (see LICENSE file for details)
  */
 
 #ifndef _SIMPI_GPIO_REGISTER_HPP_

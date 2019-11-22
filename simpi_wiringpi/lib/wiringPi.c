@@ -10,6 +10,13 @@
 
 #define _DEFAULT_SOURCE
 
+#define HOST            "127.0.0.1"
+#define PORT             32000
+#define PORT_STR        "32000"
+#define HTTP_HEADER_GET "GET %s HTTP/1.1\r\nHost: " HOST ":" PORT_STR "\r\nAccept: text/*\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+#define PATH_GET        "/api/getpin/%s"
+#define PATH_SET        "/api/setpin/%s=%d"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,17 +40,14 @@
 
 #include "wiringPi.h"
 
-#define HTTP_HEADER_GET "GET %s HTTP/1.1\r\nHost: 127.0.0.1:32000\r\nAccept: text/*\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-#define HOST "127.0.0.1"
-#define PORT 32000
-#define PATH_GET "/api/getpin/%s"
-#define PATH_SET "/api/setpin/%s=%d"
-
-struct __ret_data_t {
-    int pin_number;
-    char pin_name[16];
-    char state[16];
+struct __ret_data_single_t {
+    char status[32];
+    char key[32];
     char value[16];
+};
+struct __ret_data_t {
+    char operation[32];
+    struct __ret_data_single_t data[16];
 };
 
 uint64_t __get_sys_time(void) {
@@ -64,7 +68,7 @@ uint64_t __get_sys_time(void) {
     gettimeofday(&curr_time, NULL);
     ret_time_us = curr_time.tv_sec * (int)1e6 + curr_time.tv_usec;
 #endif
-return ret_time_us;
+    return ret_time_us;
 }
 
 int __str_starts_with(const char* a, const char* b) {
@@ -99,9 +103,9 @@ struct __ret_data_t __request(char *cmd) {
 #if defined(PLATFORM__WIN32)
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2,2),&wsa) != 0) {
-		fprintf(stderr, "[ERR] wiringPiSim: Failed to create socket. (%d)\n", WSAGetLastError());
-		return ret;
-	}
+        fprintf(stderr, "[ERR] wiringPiSim: Failed to create socket. (%d)\n", WSAGetLastError());
+        return ret;
+    }
 #endif
 
     // Create socket
@@ -133,17 +137,17 @@ struct __ret_data_t __request(char *cmd) {
 
     // Send some data
     sprintf(message, HTTP_HEADER_GET, cmd);
-	if (send(sock, message, strlen(message), 0) < 0) {
-		fputs("[ERR] wiringPiSim: write() to socket failed.\n", stderr);
-		return ret;
-	}
+    if (send(sock, message, strlen(message), 0) < 0) {
+        fputs("[ERR] wiringPiSim: write() to socket failed.\n", stderr);
+        return ret;
+    }
 
     // Receive a reply from the server
     memset(server_reply, 0, 1024);
-	if (__recv(sock, server_reply, 1024, 0) < 0) {
-		fputs("[ERR] wiringPiSim: recv() from socket failed.\n", stderr);
+    if (__recv(sock, server_reply, 1024, 0) < 0) {
+        fputs("[ERR] wiringPiSim: recv() from socket failed.\n", stderr);
         return ret;
-	}
+    }
 
 #if defined(PLATFORM__WIN32)
     closesocket(sock);
@@ -154,31 +158,48 @@ struct __ret_data_t __request(char *cmd) {
 
     char *body = strstr(server_reply, "\r\n\r\n");
     if (body == NULL) {
-		fputs("[ERR] wiringPiSim: No valid HTTP response.\n", stderr);
+        fputs("[ERR] wiringPiSim: No valid HTTP response.\n", stderr);
         return ret;
     } else {
         body += 4;
     }
 
     char *curLine = body;
+    int dataSetCount = 0;
     while (curLine) {
         char *nextLine = strchr(curLine, '\n');
         if (nextLine) *nextLine = '\0';  // temporarily terminate the current line
-        if (__str_starts_with(curLine, "state")) {
-            curLine += strlen("state") + 1;
-            strcpy(ret.state, curLine);
-        } else if (__str_starts_with(curLine, "value")) {
-            curLine += strlen("value") + 1;
-            strcpy(ret.value, curLine);
-        } else if (__str_starts_with(curLine, "pin_name")) {
-            curLine += strlen("pin_name") + 1;
-            strcpy(ret.pin_name, curLine);
-        } else if (__str_starts_with(curLine, "pin_number")) {
-            curLine += strlen("pin_number") + 1;
-            ret.pin_number = atoi(curLine);
+        if (__str_starts_with(curLine, ">")) {
+            char *curSet = curLine;
+            int dataSetSingleCount = 0;
+            while (curSet) {
+                char *nextSet = strchr(curSet, ';');
+                if (nextSet) *nextSet = '\0';
+                if (dataSetSingleCount == 0) {
+                    strcpy(ret.data[dataSetCount].status, curSet);
+                } else if (dataSetSingleCount == 1) {
+                    strcpy(ret.data[dataSetCount].key, curSet);
+                } else if (dataSetSingleCount == 2) {
+                    strcpy(ret.data[dataSetCount].value, curSet);
+                }
+                if (nextSet) *nextSet = ';';
+                curSet = nextSet ? (nextSet+1) : NULL;
+                dataSetSingleCount++;
+            }
+        } else if (__str_starts_with(curLine, "op:")) {
+            if (strlen(curLine) > 3) {
+                curLine += 3;
+                strcpy(ret.operation, curLine);
+                curLine -= 3;
+            }
         }
         if (nextLine) *nextLine = '\n';  // then restore newline-char, just to be tidy    
         curLine = nextLine ? (nextLine+1) : NULL;
+        dataSetCount++;
+        if (dataSetCount > 15) {
+            // break to prevent overflow
+            break;
+        }
     }
 
     return ret;
@@ -213,7 +234,7 @@ int digitalRead(int pin) {
     char req_str_f[512];
     sprintf(req_str_f, PATH_GET, pin_name);
     struct __ret_data_t ret = __request(req_str_f);
-    return (strcmp(ret.value, "HIGH") == 0) || (strcmp(ret.value, "1") == 0);
+    return (strcmp(ret.data[0].value, "HIGH") == 0) || (strcmp(ret.data[0].value, "1") == 0);
 }
 
 void delay(unsigned int howLong) {

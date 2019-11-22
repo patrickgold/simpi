@@ -2,7 +2,7 @@
  * Source Code File for Raspberry Pi GPIO Register simulation.
  * 
  * Author: Patrick Goldinger
- * License: MIT
+ * License: GPL 3.0 (see LICENSE file for details)
  */
 
 #include <iostream>
@@ -59,51 +59,45 @@ int simpi::Broker::get_broker_status() {
 }
 
 std::string simpi::Broker::_getpin(std::string cmd) {
-    std::string response;
+    std::string response = "op:getpin\n";
     std::string cmd_single;
     std::stringstream scmd(cmd);
     while (std::getline(scmd, cmd_single, ';')) {
         int state = -1;
         int number;
-        std::string response_pin_name = "";
-        std::string response_pin_number = "";
+        std::string response_pin;
         std::stringstream iss(cmd_single);
         iss >> number;
         if (iss.fail()) {
-            response_pin_name = cmd_single;
             //if (__gpio.hasPin(cmd_single)) {
                 Pin *pin = __gpio.pin(cmd_single);
                 if (pin != NULL) {
                     state = pin->read();
-                    response_pin_number = std::to_string(pin->number);
+                    response_pin = cmd_single;
                 }
             //}
         } else {
-            response_pin_number = cmd_single;
             //if (__gpio.hasPin(number)) {
                 Pin *pin = __gpio.pin(number);
                 if (pin != NULL) {
                     state = pin->read();
-                    response_pin_name = pin->name;
+                    response_pin = cmd_single;
                 }
             //}
         }
-        std::string status = "fail";
+        std::string status = "FAIL~PNF";
         if (state > -1) {
-            status = "success";
+            status = "SUCC";
         }
-        response += "pin_number:" + response_pin_number + 
-                    "\npin_name:" + response_pin_name + 
-                    "\nstatus:" + status +
-                    "\nvalue:" + std::to_string(state) + "\n\n";
+        response += ">" + status + ";" +
+                    response_pin + ";" +
+                    std::to_string(state) + "\n";
     }
-    response.pop_back();
-    response.pop_back();
     return response;
 }
 
 std::string simpi::Broker::_setpin(std::string cmd) {
-    std::string response;
+    std::string response = "op:setpin\n";
     std::string cmd_single;
     std::stringstream scmd(cmd);
     while (std::getline(scmd, cmd_single, ';')) {
@@ -112,58 +106,53 @@ std::string simpi::Broker::_setpin(std::string cmd) {
         int value2 = (value == "HIGH") || (value == "1");
         int state = -1;
         int number;
-        std::string response_pin_name = "";
-        std::string response_pin_number = "";
+        std::string response_pin;
         std::stringstream iss(name);
         iss >> number;
         if (iss.fail()) {
-            response_pin_name = name;
             //if (__gpio.hasPin(name)) {
                 Pin *pin = __gpio.pin(name);
                 if (pin != NULL) {
                     state = pin->write(value2);
-                    response_pin_number = std::to_string(pin->number);
+                    response_pin = name;
                 }
             //}
         } else {
-            response_pin_number = name;
             //if (__gpio.hasPin(number)) {
                 Pin *pin = __gpio.pin(number);
                 if (pin != NULL) {
                     state = pin->write(value2);
-                    response_pin_name = pin->name;
+                    response_pin = name;
                 }
             //}
         }
-        std::string status = "fail";
+        std::string status = "FAIL~PNF";
         if (state > -1) {
-            status = "success";
+            status = "SUCC";
         }
-        response += "pin_number:" + response_pin_number + 
-                    "\npin_name:" + response_pin_name + 
-                    "\nstatus:" + status +
-                    "\nvalue:" + std::to_string(state) + "\n\n";
+        response += ">" + status + ";" +
+                    response_pin + ";" +
+                    std::to_string(state) + "\n";
     }
-    response.pop_back();
-    response.pop_back();
     return response;
 }
 
 std::string simpi::Broker::_getpref(std::string cmd) {
-    return "(null)";
+    return "op:getpref\n>FAIL~NYI;;\n";
 }
 
 std::string simpi::Broker::_setpref(std::string cmd) {
-    return "(null)";
+    return "op:setpref\n>FAIL~NYI;;\n";
 }
 
 std::string simpi::Broker::_action(std::string cmd) {
+    std::string op = "op:action\n";
     if (cmd == "terminate") {
         __svr.stop();
-        return "status:success\nvalue:0\nadd_text:Exiting...";
+        return ">SUCC;terminate;Exiting...\n";
     } else if (cmd == "reset") {
         __gpio.reset();
-        return "status:success\nvalue:0\nadd_text:Reset done.";
+        return ">SUCC;reset;Reset done.\n";
     }
-    return "(null)";
+    return op + ">FAIL~UNKACT;" + cmd + ";Invalid action name.\n";
 }
