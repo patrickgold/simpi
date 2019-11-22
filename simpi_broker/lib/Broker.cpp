@@ -40,7 +40,7 @@ simpi::Broker::Broker(std::string static_dir_path)
         } else if (std::regex_match(cmd, _, std::regex("action/(.*)"))) {
             response = _action(cmd.substr(7));
         } else {
-            response = "status:fail\nvalue:-1\nerror_text:Unknown API Call";
+            response = "op:" + cmd + "\n>FAIL~UNKAPICALL;;\n";
         }
         //res.set_header("X-Content-Type-Options", "nosniff");
         //std::cout << response << std::endl;
@@ -60,38 +60,35 @@ int simpi::Broker::get_broker_status() {
 
 std::string simpi::Broker::_getpin(std::string cmd) {
     std::string response = "op:getpin\n";
-    std::string cmd_single;
+    std::string name;
     std::stringstream scmd(cmd);
-    while (std::getline(scmd, cmd_single, ';')) {
-        int state = -1;
+    while (std::getline(scmd, name, ';')) {
+        int value_ret = -1;
         int number;
-        std::string response_pin;
-        std::stringstream iss(cmd_single);
+        std::stringstream iss(name);
         iss >> number;
         if (iss.fail()) {
-            //if (__gpio.hasPin(cmd_single)) {
-                Pin *pin = __gpio.pin(cmd_single);
+            //if (__gpio.hasPin(name)) {
+                Pin *pin = __gpio.pin(name);
                 if (pin != NULL) {
-                    state = pin->read();
-                    response_pin = cmd_single;
+                    value_ret = pin->read();
                 }
             //}
         } else {
             //if (__gpio.hasPin(number)) {
                 Pin *pin = __gpio.pin(number);
                 if (pin != NULL) {
-                    state = pin->read();
-                    response_pin = cmd_single;
+                    value_ret = pin->read();
                 }
             //}
         }
         std::string status = "FAIL~PNF";
-        if (state > -1) {
+        if (value_ret > -1) {
             status = "SUCC";
         }
         response += ">" + status + ";" +
-                    response_pin + ";" +
-                    std::to_string(state) + "\n";
+                    name + ";" +
+                    std::to_string(value_ret) + "\n";
     }
     return response;
 }
@@ -104,35 +101,32 @@ std::string simpi::Broker::_setpin(std::string cmd) {
         std::string name = cmd_single.substr(0, cmd_single.find("="));
         std::string value = cmd_single.erase(0, cmd_single.find("=") + 1);
         int value2 = (value == "HIGH") || (value == "1");
-        int state = -1;
+        int value_ret = -1;
         int number;
-        std::string response_pin;
         std::stringstream iss(name);
         iss >> number;
         if (iss.fail()) {
             //if (__gpio.hasPin(name)) {
                 Pin *pin = __gpio.pin(name);
                 if (pin != NULL) {
-                    state = pin->write(value2);
-                    response_pin = name;
+                    value_ret = pin->write(value2);
                 }
             //}
         } else {
             //if (__gpio.hasPin(number)) {
                 Pin *pin = __gpio.pin(number);
                 if (pin != NULL) {
-                    state = pin->write(value2);
-                    response_pin = name;
+                    value_ret = pin->write(value2);
                 }
             //}
         }
         std::string status = "FAIL~PNF";
-        if (state > -1) {
+        if (value_ret > -1) {
             status = "SUCC";
         }
         response += ">" + status + ";" +
-                    response_pin + ";" +
-                    std::to_string(state) + "\n";
+                    name + ";" +
+                    std::to_string(value_ret) + "\n";
     }
     return response;
 }

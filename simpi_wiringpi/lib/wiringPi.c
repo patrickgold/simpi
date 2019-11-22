@@ -5,7 +5,7 @@
  *       code is being compiled and used.
  * 
  * Author: Patrick Goldinger
- * License: MIT
+ * License: GPL 3.0 (see LICENSE file for details)
  */
 
 #define _DEFAULT_SOURCE
@@ -97,7 +97,7 @@ struct __ret_data_t __request(char *cmd) {
     char message[256];
     char server_reply[1024];
     struct __ret_data_t ret = {
-        -1, "", "fail", "-1"
+        "?", { (struct __ret_data_single_t){ "FAIL", "", "" } }
     };
 
 #if defined(PLATFORM__WIN32)
@@ -170,7 +170,7 @@ struct __ret_data_t __request(char *cmd) {
         char *nextLine = strchr(curLine, '\n');
         if (nextLine) *nextLine = '\0';  // temporarily terminate the current line
         if (__str_starts_with(curLine, ">")) {
-            char *curSet = curLine;
+            char *curSet = curLine + 1;
             int dataSetSingleCount = 0;
             while (curSet) {
                 char *nextSet = strchr(curSet, ';');
@@ -184,8 +184,11 @@ struct __ret_data_t __request(char *cmd) {
                 }
                 if (nextSet) *nextSet = ';';
                 curSet = nextSet ? (nextSet+1) : NULL;
-                dataSetSingleCount++;
+                if (dataSetSingleCount++ >= 2) {
+                    break;
+                }
             }
+            dataSetCount++;
         } else if (__str_starts_with(curLine, "op:")) {
             if (strlen(curLine) > 3) {
                 curLine += 3;
@@ -195,7 +198,6 @@ struct __ret_data_t __request(char *cmd) {
         }
         if (nextLine) *nextLine = '\n';  // then restore newline-char, just to be tidy    
         curLine = nextLine ? (nextLine+1) : NULL;
-        dataSetCount++;
         if (dataSetCount > 15) {
             // break to prevent overflow
             break;
@@ -234,7 +236,10 @@ int digitalRead(int pin) {
     char req_str_f[512];
     sprintf(req_str_f, PATH_GET, pin_name);
     struct __ret_data_t ret = __request(req_str_f);
-    return (strcmp(ret.data[0].value, "HIGH") == 0) || (strcmp(ret.data[0].value, "1") == 0);
+    return (
+        strcmp(ret.data[0].value, "HIGH") == 0) || 
+        (strcmp(ret.data[0].value, "1") == 0
+    );
 }
 
 void delay(unsigned int howLong) {
