@@ -10,12 +10,16 @@
 #include <string>
 #include <regex>
 #include "Broker.hpp"
-#include "GpioRegister.hpp"
+#include "../../simpi_wiringpi/lib/gpioregs.h"
 #include "httplib.h"
 
-simpi::Broker::Broker(std::string static_dir_path)
-    : __svr(), __gpio(), __broker_status_code(-1)
+using namespace simpi;
+
+Broker::Broker(std::string static_dir_path)
+    : __svr(), __gpioregs{}, __broker_status_code(-1)
 {
+    gpioregs::reset_gpio_regs(&__gpioregs);
+
     if (!__svr.is_valid()) {
         std::cout << "Server has an error...\n";
         return;
@@ -33,6 +37,10 @@ simpi::Broker::Broker(std::string static_dir_path)
             response = _getpin(cmd.substr(7));
         } else if (std::regex_match(cmd, _, std::regex("setpin/(.*)"))) {
             response = _setpin(cmd.substr(7));
+        } else if (std::regex_match(cmd, _, std::regex("getreg/(.*)"))) {
+            response = _getreg(cmd.substr(7));
+        } else if (std::regex_match(cmd, _, std::regex("setreg/(.*)"))) {
+            response = _setreg(cmd.substr(7));
         } else if (std::regex_match(cmd, _, std::regex("getpref/(.*)"))) {
             response = _getpref(cmd.substr(8));
         } else if (std::regex_match(cmd, _, std::regex("setpref/(.*)"))) {
@@ -50,15 +58,15 @@ simpi::Broker::Broker(std::string static_dir_path)
     __svr.set_base_dir(static_dir_path.c_str());
 }
 
-bool simpi::Broker::listen(const char* host, int port) {
+bool Broker::listen(const char* host, int port) {
     return __svr.listen(host, port);
 }
 
-int simpi::Broker::get_broker_status() {
+int Broker::get_broker_status() {
     return __broker_status_code;
 }
 
-std::string simpi::Broker::_getpin(std::string cmd) {
+std::string Broker::_getpin(std::string cmd) {
     std::string response = "op:getpin\n";
     std::string name;
     std::stringstream scmd(cmd);
@@ -68,24 +76,11 @@ std::string simpi::Broker::_getpin(std::string cmd) {
         std::stringstream iss(name);
         iss >> number;
         if (iss.fail()) {
-            //if (__gpio.hasPin(name)) {
-                Pin *pin = __gpio.pin(name);
-                if (pin != NULL) {
-                    value_ret = pin->read();
-                }
-            //}
+            // thats bad
         } else {
-            //if (__gpio.hasPin(number)) {
-                Pin *pin = __gpio.pin(number);
-                if (pin != NULL) {
-                    value_ret = pin->read();
-                }
-            //}
+            value_ret = gpioregs::read_pin(number, &__gpioregs.output);
         }
-        std::string status = "FAIL~PNF";
-        if (value_ret > -1) {
-            status = "SUCC";
-        }
+        std::string status = value_ret > -1 ? "SUCC" : "FAIL~PNF";
         response += ">" + status + ";" +
                     name + ";" +
                     std::to_string(value_ret) + "\n";
@@ -93,7 +88,7 @@ std::string simpi::Broker::_getpin(std::string cmd) {
     return response;
 }
 
-std::string simpi::Broker::_setpin(std::string cmd) {
+std::string Broker::_setpin(std::string cmd) {
     std::string response = "op:setpin\n";
     std::string cmd_single;
     std::stringstream scmd(cmd);
@@ -106,24 +101,12 @@ std::string simpi::Broker::_setpin(std::string cmd) {
         std::stringstream iss(name);
         iss >> number;
         if (iss.fail()) {
-            //if (__gpio.hasPin(name)) {
-                Pin *pin = __gpio.pin(name);
-                if (pin != NULL) {
-                    value_ret = pin->write(value2);
-                }
-            //}
+            // thats bad
         } else {
-            //if (__gpio.hasPin(number)) {
-                Pin *pin = __gpio.pin(number);
-                if (pin != NULL) {
-                    value_ret = pin->write(value2);
-                }
-            //}
+            gpioregs::write_pin(number, value2, &__gpioregs.input);
+            value_ret = value2;
         }
-        std::string status = "FAIL~PNF";
-        if (value_ret > -1) {
-            status = "SUCC";
-        }
+        std::string status = value_ret > -1 ? "SUCC" : "FAIL~PNF";
         response += ">" + status + ";" +
                     name + ";" +
                     std::to_string(value_ret) + "\n";
@@ -131,21 +114,103 @@ std::string simpi::Broker::_setpin(std::string cmd) {
     return response;
 }
 
-std::string simpi::Broker::_getpref(std::string cmd) {
+std::string Broker::_getreg(std::string cmd) {
+    std::string response = "op:getreg\n";
+    std::string name;
+    std::stringstream scmd(cmd);
+    while (std::getline(scmd, name, ';')) {
+        uint32_t value_ret = 0x00000000;
+        bool is_valid_reg = false;
+        if (name == "input") {
+            value_ret = __gpioregs.input;
+            is_valid_reg = true;
+        } else if (name == "output") {
+            value_ret = __gpioregs.output;
+            is_valid_reg = true;
+        } else if (name == "config") {
+            value_ret = __gpioregs.config;
+            is_valid_reg = true;
+        } else if (name == "pwm") {
+            value_ret = __gpioregs.pwm;
+            is_valid_reg = true;
+        } else if (name == "inten") {
+            value_ret = __gpioregs.inten;
+            is_valid_reg = true;
+        } else if (name == "int0") {
+            value_ret = __gpioregs.int0;
+            is_valid_reg = true;
+        } else if (name == "int1") {
+            value_ret = __gpioregs.int1;
+            is_valid_reg = true;
+        }
+        char value_ret2[16];
+        gpioregs::reg_to_str(value_ret2, &value_ret);
+        std::string status = is_valid_reg ? "SUCC" : "FAIL~UNKREG";
+        response += ">" + status + ";" +
+                    name + ";" +
+                    value_ret2 + "\n";
+    }
+    return response;
+}
+
+std::string Broker::_setreg(std::string cmd) {
+    std::string response = "op:setreg\n";
+    std::string cmd_single;
+    std::stringstream scmd(cmd);
+    while (std::getline(scmd, cmd_single, ';')) {
+        std::string name = cmd_single.substr(0, cmd_single.find("="));
+        std::string value = cmd_single.erase(0, cmd_single.find("=") + 1);
+        uint32_t value2 = value.size() == 0
+            ? 0x00000000 : gpioregs::str_to_reg(value.c_str());
+        uint32_t value_ret = 0x00000000;
+        bool is_valid_reg = false;
+        if (name == "input") {
+            value_ret = __gpioregs.input = value2;
+            is_valid_reg = true;
+        } else if (name == "output") {
+            value_ret = __gpioregs.output = value2;
+            is_valid_reg = true;
+        } else if (name == "config") {
+            value_ret = __gpioregs.config = value2;
+            is_valid_reg = true;
+        } else if (name == "pwm") {
+            value_ret = __gpioregs.pwm = value2;
+            is_valid_reg = true;
+        } else if (name == "inten") {
+            value_ret = __gpioregs.inten = value2;
+            is_valid_reg = true;
+        } else if (name == "int0") {
+            value_ret = __gpioregs.int0 = value2;
+            is_valid_reg = true;
+        } else if (name == "int1") {
+            value_ret = __gpioregs.int1 = value2;
+            is_valid_reg = true;
+        }
+        char value_ret2[16];
+        gpioregs::reg_to_str(value_ret2, &value_ret);
+        std::string status = is_valid_reg ? "SUCC" : "FAIL~UNKREG";
+        response += ">" + status + ";" +
+                    name + ";" +
+                    value_ret2 + "\n";
+    }
+    return response;
+}
+
+std::string Broker::_getpref(std::string cmd) {
     return "op:getpref\n>FAIL~NYI;;\n";
 }
 
-std::string simpi::Broker::_setpref(std::string cmd) {
+std::string Broker::_setpref(std::string cmd) {
     return "op:setpref\n>FAIL~NYI;;\n";
 }
 
-std::string simpi::Broker::_action(std::string cmd) {
+std::string Broker::_action(std::string cmd) {
     std::string op = "op:action\n";
     if (cmd == "terminate") {
         __svr.stop();
         return ">SUCC;terminate;Exiting...\n";
     } else if (cmd == "reset") {
-        __gpio.reset();
+        gpioregs::reset_gpio_regs(&__gpioregs);
         return ">SUCC;reset;Reset done.\n";
     }
     return op + ">FAIL~UNKACT;" + cmd + ";Invalid action name.\n";

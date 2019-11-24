@@ -1,26 +1,33 @@
-class SimPi {
+/*!simpi.js
+ * Main class for SimPi front end user interface.
+ * 
+ * Author: Patrick Goldinger
+ * License: GPL 3.0 (see LICENSE file for details)
+ */
+
+ class SimPi {
     constructor () {
+        this.gpioregs = new GpioRegs();
         this.h2g = {
-            LED1: "GPIO18",
-            LED2: "GPIO23",
-            LED3: "GPIO24",
-            LED4: "GPIO25",
-            BTN1: "GPIO22",
-            BTN2: "GPIO27",
-            BTN3: "GPIO17",
+            LED1: 18,
+            LED2: 23,
+            LED3: 24,
+            LED4: 25,
+            BTN1: 22,
+            BTN2: 27,
+            BTN3: 17,
         };
         this.g2h = {
-            GPIO18: "LED1",
-            GPIO23: "LED2",
-            GPIO24: "LED3",
-            GPIO25: "LED4",
-            GPIO22: "BTN1",
-            GPIO27: "BTN2",
-            GPIO17: "BTN3",
+            18: "LED1",
+            23: "LED2",
+            24: "LED3",
+            25: "LED4",
+            22: "BTN1",
+            27: "BTN2",
+            17: "BTN3",
         };
         this.arrLED = [ "LED1", "LED2", "LED3", "LED4", ];
         this.arrBTN = [ "BTN1", "BTN2", "BTN3", ];
-        this.buttonStates = { BTN1: 0, BTN2: 0, BTN3: 0, };
         this.isPaused = false;
         this.updateSpeedMS = 100;
         this.periodicSyncId = null;
@@ -44,11 +51,11 @@ class SimPi {
         let that = this;
         this.arrBTN.forEach((v, i) => {
             that.ele[v].addEventListener("mousedown", function (e) {
-                that.buttonStates[v] = 1;
+                that.gpioregs.writePin(that.h2g[v], 1, GPIOREGS.input);
                 this.setAttribute("data-value", "1");
             });
             that.ele[v].addEventListener("mouseup", function (e) {
-                that.buttonStates[v] = 0;
+                that.gpioregs.writePin(that.h2g[v], 0, GPIOREGS.input);
                 this.setAttribute("data-value", "0");
             });
         });
@@ -81,7 +88,7 @@ class SimPi {
             fetch("/api/action/reset").then((response) => {
                 response.text().then((data) => {
                     let parsedData = that.parseSimPiTransferData(data);
-                    if (parsedData[0].status == "success") {
+                    if (parsedData[0].status == "SUCC") {
                         alert("Reset done on SimPi Broker.");
                     }
                 });
@@ -103,18 +110,29 @@ class SimPi {
         });
     }
     
+    /**
+     * Syncs all registers.
+     * @param {SimPi} that Reference to the 'this' object of SimPi.
+     */
     syncData(that) {
-        let urlLED = "/api/getpin/";
-        that.arrLED.forEach((v, i) => {
-            urlLED += that.h2g[v] + ";";
-        });
-        urlLED.slice(0, -1);
-        fetch(urlLED).then((response) => {
+        if (that.isPaused) {
+            return;
+        }
+        let getURL = "/api/getreg/" +
+            GPIOREGS.output + ";" +
+            GPIOREGS.config + ";" +
+            GPIOREGS.pwm + ";" +
+            GPIOREGS.intrp;
+        fetch(getURL).then((response) => {
             response.text().then((data) => {
                 let parsedData = that.parseSimPiTransferData(data);
                 parsedData.forEach((v, i) => {
-                    if (!that.isPaused) {
-                        that.ele[that.g2h[v.key]].setAttribute("data-value", v.value);
+                    that.gpioregs[v.key] = that.gpioregs.strToReg(v.value);
+                    if (v.key == GPIOREGS.output) {
+                        that.ele["LED1"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED1"], GPIOREGS.output));
+                        that.ele["LED2"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED2"], GPIOREGS.output));
+                        that.ele["LED3"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED3"], GPIOREGS.output));
+                        that.ele["LED4"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED4"], GPIOREGS.output));
                     }
                 });
             });
@@ -122,16 +140,18 @@ class SimPi {
         }).catch((err) => {
             that.ele.statusConnectivity.setAttribute("data-state", "off");
         });
-        let urlBTN = "/api/setpin/";
-        that.arrBTN.forEach((v, i) => {
-            urlBTN += that.h2g[v] + "=" + that.buttonStates[v] + ";";
-        });
-        urlBTN.slice(0, -1);
-        fetch(urlBTN).catch((err) => {
+        let setURL = "/api/setreg/" +
+            GPIOREGS.input + "=" + that.gpioregs.regToStr(GPIOREGS.input);
+        fetch(setURL).catch((err) => {
             that.ele.statusConnectivity.setAttribute("data-state", "off");
         });
     }
 
+    /**
+     * Parses an raw response string into an JS object and returns it.
+     * @param {String} data The raw string to be parsed.
+     * @returns {Object}
+     */
     parseSimPiTransferData(data) {
         let ret = [];
         data.split("\n").forEach((v, i) => {

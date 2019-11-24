@@ -1,8 +1,8 @@
 CXX = gcc
-CXXFLAGS = -Wall -std=c11
+CXXFLAGS = -Wall -std=c11 -lpthread
 
 WPI_SRC = lib/wiringPi.c
-WPI_HEADERS = lib/wiringPi.h
+WPI_HEADERS = lib/wiringPi.h lib/gpioregs.h
 WPI_OUT = out/wiringPiSim.o
 
 SRC = test/blinky.c

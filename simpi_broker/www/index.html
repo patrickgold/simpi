@@ -43,7 +43,7 @@
         <div class="board" id="prefs-board">
             <div class="board-row pref">
                 <label>Update Interval:</label>
-                <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="200">
+                <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="100">
                 <span class="unit" id="pref-update-speed-o">? ms</span>
             </div>
             <div class="board-row pref">
@@ -64,10 +64,11 @@
                 <button class="hw part btn" id="BTN3" data-value="0"></button>
             </div>
         </div>
-        <div>v0.1.1.alpha</div>
+        <div>v0.2.0.alpha</div>
         <footer>&copy;2019 Patrick Goldinger - All rights reserved.</footer>
     </div>
-    <script src="scripts/SimPi.js"></script>
+    <script src="scripts/gpioregs.js"></script>
+    <script src="scripts/simpi_main.js"></script>
     <script src="scripts/main.js"></script>
 </body>
 

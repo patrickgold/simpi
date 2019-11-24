@@ -14,8 +14,6 @@
 #define PORT             32000
 #define PORT_STR        "32000"
 #define HTTP_HEADER_GET "GET %s HTTP/1.1\r\nHost: " HOST ":" PORT_STR "\r\nAccept: text/*\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
-#define PATH_GET        "/api/getpin/%s"
-#define PATH_SET        "/api/setpin/%s=%d"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,23 +34,26 @@
     #include <netinet/in.h>
     #include <netinet/tcp.h>
     #include <arpa/inet.h>
+    #include <pthread.h>
 #endif
 
+#include "gpioregs.h"
 #include "wiringPi.h"
 
-struct __ret_data_single_t {
+typedef struct {
     char status[32];
     char key[32];
     char value[16];
-};
-struct __ret_data_t {
+} ret_data_single_t;
+typedef struct {
     char operation[32];
-    struct __ret_data_single_t data[16];
-};
+    ret_data_single_t data[16];
+} ret_data_t;
 
-uint64_t __get_sys_time(void) {
-    uint64_t ret_time_us_raw;
+uint32_t __get_sys_time(void) {
+    uint32_t ret_time_us;
 #if defined(PLATFORM__WIN32)
+    uint64_t ret_time_us_raw;
     FILETIME curr_time;
     // Gets time in 100ns precision (0.1us)
     GetSystemTimePreciseAsFileTime(&curr_time);
@@ -61,7 +62,7 @@ uint64_t __get_sys_time(void) {
     ret_time_us_raw |= curr_time.dwLowDateTime;
     // January 1st, 1970 - January 1st, 1601 UTC ~ 369 years
     // or 116444736000000000 us
-    uint32_t ret_time_us = (uint32_t)(ret_time_us_raw - 116444736000000000);
+    ret_time_us = (uint32_t)(ret_time_us_raw - 116444736000000000);
     ret_time_us /= (uint32_t)10; 
 #elif defined(PLATFORM__LINUX)
     struct timeval curr_time;
@@ -91,13 +92,13 @@ int __recv(int __fd, void *__buf, size_t __n, int __flags) {
     return 0;
 }
 
-struct __ret_data_t __request(char *cmd) {
+ret_data_t __request(char *cmd) {
     int sock;
     struct sockaddr_in server;
     char message[256];
     char server_reply[1024];
-    struct __ret_data_t ret = {
-        "?", { (struct __ret_data_single_t){ "FAIL", "", "" } }
+    ret_data_t ret = {
+        "?", { (ret_data_single_t){ "FAIL", "", "" } }
     };
 
 #if defined(PLATFORM__WIN32)
@@ -138,7 +139,7 @@ struct __ret_data_t __request(char *cmd) {
     // Send some data
     sprintf(message, HTTP_HEADER_GET, cmd);
     if (send(sock, message, strlen(message), 0) < 0) {
-        fputs("[ERR] wiringPiSim: write() to socket failed.\n", stderr);
+        fputs("[ERR] wiringPiSim: send() to socket failed.\n", stderr);
         return ret;
     }
 
@@ -207,39 +208,115 @@ struct __ret_data_t __request(char *cmd) {
     return ret;
 }
 
+
+// =====
+// Data Sync module
+// =====
+gpioregs_t gpioregs;
+
+void _data_sync_once() {
+    ret_data_t ret_data;
+
+    // Get input register from broker
+    char req_get[512] = "/api/getreg/input";
+    ret_data = __request(req_get);
+    gpioregs.input = str_to_reg(ret_data.data[0].value);
+
+    // Set output/config/pwm/intrp register on broker
+    char req_set_f[512] = "/api/setreg/output=%s;config=%s;pwm=%s;inten=%s;int0=%s;int1=%s";
+    char req_set[512];
+    char reg1[16], reg2[16], reg3[16], reg4[16], reg5[16], reg6[16];
+    reg_to_str(reg1, &gpioregs.output);
+    reg_to_str(reg2, &gpioregs.config);
+    reg_to_str(reg3, &gpioregs.pwm);
+    reg_to_str(reg4, &gpioregs.inten);
+    reg_to_str(reg5, &gpioregs.int0);
+    reg_to_str(reg6, &gpioregs.int1);
+    sprintf(req_set, req_set_f, reg1, reg2, reg3, reg4, reg5, reg6);
+    ret_data = __request(req_set);
+}
+
+int is_thread_valid = 0;
+
+#if defined(PLATFORM__WIN32)
+HANDLE sync_thread;
+DWORD WINAPI _data_sync(void* data) {
+  while (is_thread_valid) {
+      _data_sync_once();
+  }
+  return 0;
+}
+void _cleanup(void) {
+    is_thread_valid = 0;
+    WaitForSingleObject(sync_thread, 1000);
+    CloseHandle(sync_thread);
+}
+#elif defined(PLATFORM__LINUX)
+pthread_t sync_thread;
+void *_data_sync(void* data) {
+  while (is_thread_valid) {
+      _data_sync_once();
+  }
+  return NULL;
+}
+void _cleanup(void) {
+    is_thread_valid = 0;
+    pthread_join(sync_thread, NULL);
+}
+#endif
+
 // =====
 // Actual wiringPi function implementations
 // =====
 
-uint64_t start_time_us;
+uint32_t start_time_us;
 
 int wiringPiSetupGpio(void) {
+    reset_gpio_regs(&gpioregs);
     start_time_us = __get_sys_time();
-    return 0;
+    is_thread_valid = 1;
+#if defined(PLATFORM__WIN32)
+    sync_thread = CreateThread(NULL, 0, _data_sync, NULL, 0, NULL);
+    if (!sync_thread) {
+        fputs("[ERR] wiringPiSim: Failed to create thread for data sync.\n", stderr);
+        return EXIT_FAILURE;
+    }
+#elif defined(PLATFORM__LINUX)
+    int succ = pthread_create(&sync_thread, NULL, _data_sync, NULL);
+    if (succ != 0) {
+        fputs("[ERR] wiringPiSim: Failed to create thread for data sync.\n", stderr);
+        return EXIT_FAILURE;
+    }
+#endif
+    atexit(_cleanup);
+    return EXIT_SUCCESS;
 }
 
 void pinMode(int pin, int pud) {
-    // do nothing
+    if (pin >= gpioregs._min_num && pin <= gpioregs._max_num) {
+        if (pud == INPUT || pud == OUTPUT) {
+            int mode = pud == INPUT ? 1 : 0;
+            write_pin(pin, mode, &gpioregs.config);
+            write_pin(pin, 0, &gpioregs.pwm);
+        } else if (pud == PWM_OUTPUT) {
+            write_pin(pin, 0, &gpioregs.config);
+            write_pin(pin, 1, &gpioregs.pwm);
+        }
+    }
 }
 
 void digitalWrite(int pin, int value) {
-    char pin_name[16];
-    sprintf(pin_name, "GPIO%d", pin);
-    char req_str_f[512];
-    sprintf(req_str_f, PATH_SET, pin_name, value);
-    __request(req_str_f);
+    if (pin >= gpioregs._min_num && pin <= gpioregs._max_num) {
+        write_pin(pin, value, &gpioregs.output);
+    }
 }
 
 int digitalRead(int pin) {
-    char pin_name[16];
-    sprintf(pin_name, "GPIO%d", pin);
-    char req_str_f[512];
-    sprintf(req_str_f, PATH_GET, pin_name);
-    struct __ret_data_t ret = __request(req_str_f);
-    return (
-        strcmp(ret.data[0].value, "HIGH") == 0) || 
-        (strcmp(ret.data[0].value, "1") == 0
-    );
+    if (pin >= gpioregs._min_num && pin <= gpioregs._max_num) {
+        return read_pin(pin, &gpioregs.input);
+    } else {
+        return -1;
+    }
 }
 
 void delay(unsigned int howLong) {

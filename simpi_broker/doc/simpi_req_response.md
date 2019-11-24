@@ -28,6 +28,7 @@ the `FAIL~{CODE}` format (see bullet point below).
 - `FAIL~`
   - `UNKAPICALL`: Unknown API Call
   - `UNKACT`: Unknown Action
+  - `UNKREG`: Unknown Register
   - `NYI`: Not Yet Implemented
   - `PNF`: Pin Not Found
   - `PWC`: Pin Wrong Config (Input/Output/Pwm)

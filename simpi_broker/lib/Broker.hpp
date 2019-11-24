@@ -9,7 +9,7 @@
 #define _SIMPI_BROKER_HPP_
 
 #include <string>
-#include "GpioRegister.hpp"
+#include "../../simpi_wiringpi/lib/gpioregs.h"
 #include "httplib.h"
 
 namespace simpi {
@@ -22,12 +22,14 @@ class Broker {
     protected:
     std::string _getpin(std::string cmd);
     std::string _setpin(std::string cmd);
+    std::string _getreg(std::string cmd);
+    std::string _setreg(std::string cmd);
     std::string _getpref(std::string cmd);
     std::string _setpref(std::string cmd);
     std::string _action(std::string cmd);
     private:
     httplib::Server __svr;
-    GpioRegister __gpio;
+    gpioregs::gpioregs_t __gpioregs;
     int __broker_status_code;
 };
 

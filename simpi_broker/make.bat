@@ -2,7 +2,7 @@
 if "%1"=="build" (
     title Building executable
     echo Building executable...
-    call ..\clenv.bat /EHsc src\main.cpp lib\GpioRegister.cpp lib\Broker.cpp /link /out:out\simpi_broker.exe
+    call ..\clenv.bat /EHsc src\main.cpp lib\Broker.cpp /link /out:out\simpi_broker.exe
     move *.obj out\
 ) else if "%1"=="run" (
     if exist ".\out\simpi_broker.exe" (
