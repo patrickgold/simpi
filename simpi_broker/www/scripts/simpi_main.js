@@ -7,7 +7,7 @@
 
  class SimPi {
     constructor () {
-        this.gpioregs = new GpioRegs();
+        this.gpioregs = new GpioRegs(document.getElementById("gpioregs"));
         this.h2g = {
             LED1: 18,
             LED2: 23,
@@ -51,12 +51,12 @@
         let that = this;
         this.arrBTN.forEach((v, i) => {
             that.ele[v].addEventListener("mousedown", function (e) {
-                that.gpioregs.writePin(that.h2g[v], 1, GPIOREGS.input);
                 this.setAttribute("data-value", "1");
+                that.gpioregs.$.input.writePin(that.h2g[v], 1);
             });
             that.ele[v].addEventListener("mouseup", function (e) {
-                that.gpioregs.writePin(that.h2g[v], 0, GPIOREGS.input);
                 this.setAttribute("data-value", "0");
+                that.gpioregs.$.input.writePin(that.h2g[v], 0);
             });
         });
         this.ele.prefUpdateSpeed_i.addEventListener("input", function (e) {
@@ -72,41 +72,71 @@
             bubbles: true,
             cancelable: true,
         }));
-        this.ele.ctrlTerminate.addEventListener("click", function (e) {
-            fetch("/api/action/terminate").then((response) => {
-                response.text().then((data) => {
-                    let parsedData = that.parseSimPiTransferData(data);
-                    if (parsedData[0].status == "SUCC") {
-                        document.write("Terminated SimPi Broker. You can now close this browser tab.");
-                    }
-                });
-            }).catch((err) => {
-                alert("SimPi Broker is either already terminated or the action failed to succeed.");
+        this.ele.ctrlTerminate.addEventListener("click", () => { that.terminate(); });
+        this.ele.ctrlReset.addEventListener("click", () => { that.reset(); });
+        this.ele.ctrlPause.addEventListener("click", () => { that.pause(); });
+        this.ele.ctrlPlay.addEventListener("click", () => { that.play(); });
+    }
+
+    /**
+     * Pauses the SimPi Client.
+     */
+    pause() {
+        if (this.isPaused) { return; }
+        this.isPaused = true;
+        this.ele.ctrlPause.classList.add("hide");
+        this.ele.ctrlPlay.classList.remove("hide");
+        clearInterval(this.periodicSyncId);
+    }
+
+    /**
+     * Unpauses the SimPi Client.
+     */
+    play() {
+        if (!this.isPaused) { return; }
+        this.isPaused = false;
+        this.ele.ctrlPlay.classList.add("hide");
+        this.ele.ctrlPause.classList.remove("hide");
+        this.periodicSyncId = setInterval(this.syncData, this.updateSpeedMS, this);
+    }
+
+    /**
+     * Resets the whole SimPi Client and Broker (NOT the wiringPi side though!!!).
+     */
+    reset() {
+        this.arrBTN.forEach((v, i) => {
+            this.ele[v].dataset.value = "0";
+        }, this);
+        this.gpioregs.reset();
+        this.gpioregs.$.input.syncAllToUi();
+        let that = this;
+        fetch("/api/action/reset").then((response) => {
+            response.text().then((data) => {
+                let parsedData = that.parseSimPiTransferData(data);
+                if (parsedData[0].status == "SUCC") {
+                    alert("Reset done on SimPi Broker.");
+                }
             });
+        }).catch((err) => {
+            alert("Error: Couldn't reach SimPi Broker.");
+            that.ele.statusConnectivity.dataset.state = "off";
         });
-        this.ele.ctrlReset.addEventListener("click", function (e) {
-            fetch("/api/action/reset").then((response) => {
-                response.text().then((data) => {
-                    let parsedData = that.parseSimPiTransferData(data);
-                    if (parsedData[0].status == "SUCC") {
-                        alert("Reset done on SimPi Broker.");
-                    }
-                });
-            }).catch((err) => {
-                alert("Error: Couldn't reach SimPi Broker.");
+    }
+
+    /**
+     * Terminate the SimPi Broker (and then the SimPi Client) if possible.
+     */
+    terminate() {
+        let that = this;
+        fetch("/api/action/terminate").then((response) => {
+            response.text().then((data) => {
+                let parsedData = that.parseSimPiTransferData(data);
+                if (parsedData[0].status == "SUCC") {
+                    document.write("Terminated SimPi Broker. You can now close this browser tab.");
+                }
             });
-        });
-        this.ele.ctrlPause.addEventListener("click", function (e) {
-            that.isPaused = true;
-            this.classList.add("hide");
-            that.ele.ctrlPlay.classList.remove("hide");
-            clearInterval(that.periodicSyncId);
-        });
-        this.ele.ctrlPlay.addEventListener("click", function (e) {
-            that.isPaused = false;
-            this.classList.add("hide");
-            that.ele.ctrlPause.classList.remove("hide");
-            that.periodicSyncId = setInterval(that.syncData, 100, that);
+        }).catch((err) => {
+            alert("SimPi Broker is either already terminated or the action failed to succeed.");
         });
     }
     
@@ -115,35 +145,35 @@
      * @param {SimPi} that Reference to the 'this' object of SimPi.
      */
     syncData(that) {
-        if (that.isPaused) {
-            return;
-        }
+        if (that.isPaused) { return; }
         let getURL = "/api/getreg/" +
-            GPIOREGS.output + ";" +
-            GPIOREGS.config + ";" +
-            GPIOREGS.pwm + ";" +
-            GPIOREGS.intrp;
+            that.gpioregs.$.output.key + ";" +
+            that.gpioregs.$.config.key + ";" +
+            that.gpioregs.$.pwm.key + ";" +
+            that.gpioregs.$.inten.key + ";" +
+            that.gpioregs.$.int0.key + ";" +
+            that.gpioregs.$.int1.key;
         fetch(getURL).then((response) => {
             response.text().then((data) => {
                 let parsedData = that.parseSimPiTransferData(data);
                 parsedData.forEach((v, i) => {
-                    that.gpioregs[v.key] = that.gpioregs.strToReg(v.value);
-                    if (v.key == GPIOREGS.output) {
-                        that.ele["LED1"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED1"], GPIOREGS.output));
-                        that.ele["LED2"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED2"], GPIOREGS.output));
-                        that.ele["LED3"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED3"], GPIOREGS.output));
-                        that.ele["LED4"].setAttribute("data-value", that.gpioregs.readPin(that.h2g["LED4"], GPIOREGS.output));
+                    that.gpioregs.$[v.key].fromString(v.value);
+                    if (v.key == that.gpioregs.$.output.key) {
+                        that.ele["LED1"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED1"]));
+                        that.ele["LED2"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED2"]));
+                        that.ele["LED3"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED3"]));
+                        that.ele["LED4"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED4"]));
                     }
                 });
             });
-            that.ele.statusConnectivity.setAttribute("data-state", "on");
+            that.ele.statusConnectivity.dataset.state = "on";
         }).catch((err) => {
-            that.ele.statusConnectivity.setAttribute("data-state", "off");
+            that.ele.statusConnectivity.dataset.state = "off";
         });
         let setURL = "/api/setreg/" +
-            GPIOREGS.input + "=" + that.gpioregs.regToStr(GPIOREGS.input);
+            that.gpioregs.$.input.key + "=" + that.gpioregs.$.input.toString();
         fetch(setURL).catch((err) => {
-            that.ele.statusConnectivity.setAttribute("data-state", "off");
+            that.ele.statusConnectivity.dataset.state = "off";
         });
     }
 

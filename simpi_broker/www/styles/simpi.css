@@ -43,7 +43,7 @@ body {
     display: flex;
     flex-direction: column;
     margin: 0 auto;
-    max-width: 400px;
+    max-width: 1400px;
     width: 100%;
 }
 
@@ -60,7 +60,6 @@ button {
     border-bottom: 4px solid var(--__border-color);
     border-radius: 4px;
     color: var(--__text-color);
-    cursor: pointer;
     display: flex;
     flex-direction: row;
     font-family: inherit;
@@ -78,11 +77,12 @@ button.red {
     --__text-color: var(--text-white);
     --__text-color-hover: var(--text-whitish);
 }
-button:hover {
+button:not([disabled]):hover {
     background-color: var(--__bg-color-hover);
     color: var(--__text-color-hover);
+    cursor: pointer;
 }
-button:active {
+button:not([disabled]):active {
     transform: translateY(2px);
 }
 
@@ -224,7 +224,68 @@ button:active {
     width: 24px;
 }
 .btn[data-value="1"] {
-    background-color: var(--btn-color-on);
+    background-color: var(--btn-color-on) !important;
 }
 
 
+#gpioregs {
+    background-color: var(--grey-100);
+    border-radius: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+    padding: 8px 8px;
+    position: relative;
+    width: 100%;
+}
+#gpioregs .reg {
+    align-items: center;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 8px;
+    transition: 200ms ease;
+}
+#gpioregs .reg:not(.rheader):hover {
+    background-color: var(--grey-200);
+}
+#gpioregs .reg.rheader .name {
+    color: var(--grey-400);
+}
+#gpioregs .reg .bits {
+    display: flex;
+    flex-direction: row;
+}
+#gpioregs .reg .bits .bit {
+    border: none;
+    color: var(--text-black);
+    display: flex;
+    height: 32px;
+    margin: 0 2px;
+    transition: none;
+    width: 32px;
+}
+#gpioregs .reg .bits .bit[data-type="hu"],
+#gpioregs .reg .bits .bit[data-type="u"] {
+    background-color: var(--grey-200);
+    color: var(--grey-400);
+}
+#gpioregs .reg .bits .bit[data-type="v"][data-value="1"] {
+    background-color: var(--text-black);
+    color: var(--text-white);
+}
+#gpioregs .reg .bits .bit[data-type="v"]::after {
+    color: inherit;
+    content: attr(data-value);
+    display: block;
+}
+#gpioregs .reg .bits .bit[data-type="u"]::after {
+    color: var(--grey-400);
+    content: attr(data-value);
+    display: block;
+}
+#gpioregs .reg.rheader .bits .bit {
+    background-color: transparent;
+}

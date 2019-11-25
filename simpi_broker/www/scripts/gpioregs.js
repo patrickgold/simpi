@@ -5,116 +5,198 @@
  * License: GPL 3.0 (see LICENSE file for details)
  */
 
-const GPIOREGS = Object.freeze({
-    input: "input",
-    output: "output",
-    config: "config",
-    pwm: "pwm",
-    intrp: "intrp",
-});
+class GpioReg {
+    "use strict";
+
+    /**
+     * Initializes a new GPIO Register.
+     * @param {String} key The key name of the register.
+     * @param {number} defaultValue The default value used on init and reset.
+     */
+    constructor(key, defaultValue, minNum = 0, maxNum = 31) {
+        this.key = key;
+        this._defaultValue = (defaultValue >>> 0);
+        this._reg = (defaultValue >>> 0);
+        this.minNum = minNum;
+        this.maxNum = maxNum;
+        this.uiBits = [];
+        this.uiName = null;
+    }
+
+    /**
+     * Resets the register to default value.
+     */
+    reset() {
+        this._reg = this._defaultValue;
+    }
+
+    /**
+     * Read the register.
+     * @returns {number} (unsigned)
+     */
+    read() {
+        return (this._reg >>> 0);
+    }
+    /**
+     * Writes a given value to the register.
+     * @param {number} v The new value of the register.
+     */
+    write(v) {
+        this._reg = (v >>> 0);
+        this.syncAllToUi();
+    }
+
+    /**
+     * Reads the register and returns it as string.
+     * @returns {String}
+     */
+    toString() {
+        return "0x" + this._reg.toString(16);
+    }
+    /**
+     * Writes a given value (as string) to the register.
+     * @param {String} v The new value of the register.
+     */
+    fromString(v) {
+        this._reg = (parseInt(v, 16) >>> 0);
+        this.syncAllToUi();
+    }
+
+    /**
+     * Reads a given pin number and returns its value.
+     * @param {number} pin The pin number to be read.
+     * @returns {number}
+     */
+    readPin(pin) {
+        return (this._reg >>> pin) & 0x1;
+    }
+    /**
+     * Writes a given value to the given pin.
+     * @param {number} pin The pin number to be written.
+     * @param {number} v The value to be written.
+     */
+    writePin(pin, v) {
+        if (v == 0) {
+            this._reg = ((this._reg & ~(0x1 << pin)) >>> 0);
+        } else {
+            this._reg = ((this._reg | (0x1 << pin)) >>> 0);
+        }
+        this.syncSingleToUi(pin);
+    }
+
+    /**
+     * Syncs the value of a given pin to UI.
+     * @param {number} pin The pin to be synced.
+     */
+    syncSingleToUi(pin) {
+        if (this.uiBits.length > pin) {
+            this.uiBits[pin].dataset.value = this.readPin(pin);
+        }
+    }
+    /**
+     * Syncs the whole register to UI.
+     */
+    syncAllToUi() {
+        for (let b = 0; b < this.uiBits.length; b++) {
+            this.uiBits[b].dataset.value = this.readPin(b);
+        }
+    }
+}
 
 class GpioRegs {
     "use strict";
 
-    constructor() {
-        this.__valid_registers = [
-            GPIOREGS.input,
-            GPIOREGS.output,
-            GPIOREGS.config,
-            GPIOREGS.pwm,
-            GPIOREGS.intrp,
-        ];
+    /**
+     * Initializes a new GPIO Registers object.
+     * @param {HTMLElement} rootRegEle The root element to build the register matrix on.
+     */
+    constructor(rootRegEle) {
+        this.$ = {
+            input:      new GpioReg("input",    0x00000000, 2, 27),
+            output:     new GpioReg("output",   0x00000000, 2, 27),
+            config:     new GpioReg("config",   0xFFFFFFFF, 2, 27),
+            pwm:        new GpioReg("pwm",      0x00000000, 2, 27),
+            inten:      new GpioReg("inten",    0x00000000, 2, 27),
+            int0:       new GpioReg("int0",     0x00000000, 2, 27),
+            int1:       new GpioReg("int1",     0x00000000, 2, 27),
+        };
         this.reset();
+        this.setupRegUI(rootRegEle);
     }
 
-    reset() {
-        /** Input Register */
-        this.input =    0x00000000;
-        /** Output Register */
-        this.output =   0x00000000;
-        /** Config Register */
-        this.config =   0xFFFFFFFF;
-        /** PWM Register */
-        this.pwm =      0x00000000;
-        /** Interrupt Register */
-        this.intrp =    0x00000000;
+    /**
+     * Sets up the UI for the registers.
+     * @param {HTMLElement} rootRegEle The root register element to build the UI.
+     */
+    setupRegUI(rootRegEle) {
+        let regArray = ["header"].concat(Object.keys(this.$));
 
+        regArray.forEach((v, i) => {
+            let reg = document.createElement("div");
+            reg.id = "reg_" + v;
+            reg.classList.add("reg");
+            if (v == "header") {
+                reg.classList.add("rheader");
+            }
+
+            let regName = document.createElement("div");
+            regName.classList.add("name");
+            if (v != "header") {
+                regName.innerHTML = v.toUpperCase();
+                this.$[v].uiName = regName;
+            } else {
+                regName.innerHTML = "GPIO";
+            }
+            reg.appendChild(regName);
+
+            let regBits = document.createElement("div");
+            regBits.classList.add("bits");
+            reg.appendChild(regBits);
+
+            for (let b = 31; b >= 0; b--) {
+                let regBit = document.createElement("button");
+                regBit.id = "reg_" + v + "_" + b;
+                regBit.classList.add("bit");
+                if (b <= this._max_num && b >= this._min_num) {
+                    if (v == "header") {
+                        regBit.dataset.type = "hv";
+                        regBit.setAttribute("disabled", "");
+                    } else {
+                        regBit.dataset.type = "v";
+                        regBit.dataset.value = "0";
+                    }
+                    
+                } else {
+                    if (v == "header") {
+                        regBit.dataset.type = "hu";
+                    } else {
+                        regBit.dataset.type = "u";
+                    }
+                    regBit.dataset.value = "0";
+                    regBit.setAttribute("disabled", "");
+                }
+                if (v == "header") {
+                    regBit.innerHTML = b;
+                } else {
+                    this.$[v].uiBits[b] = regBit;
+                }
+                regBits.appendChild(regBit);
+            }
+
+            rootRegEle.appendChild(reg);
+        }, this);
+    }
+
+    /**
+     * Resets all registers to default value.
+     */
+    reset() {
+        for (let key in this.$) {
+            if (this.$.hasOwnProperty(key)) {
+                this.$[key].reset();
+            }
+        }
         this._min_num = 2;
         this._max_num = 27;
-    }
-
-    /**
-     * Reads a specific {pin} in {reg} and returns its state. Throws an
-     *  RangeError if specified {pin} and/or {reg} is out of range.
-     * @param {number} pin The pin number to be read.
-     * @param {String} reg The register.
-     * @returns {number}
-     */
-    readPin(pin, reg) {
-        if (this.__valid_registers.includes(reg)) {
-            if (pin >= this._min_num && pin <= this._max_num) {
-                return (this[reg] >>> pin) & 0x1;
-            } else {
-                throw new RangeError(
-                    "readPin(): Specified pin '" + pin + "' is out of range."
-                );
-            }
-        } else {
-            throw new RangeError(
-                "readPin(): Specified reg '" + reg + "' is not valid."
-            );
-        }
-    }
-
-    /**
-     * Writes a specific {pin} in {reg}. Throws an RangeError if specified {pin}
-     *  and/or {reg} is out of range.
-     * @param {number} pin The pin number to be read.
-     * @param {number} val The value.
-     * @param {String} reg The register.
-     */
-    writePin(pin, val, reg) {
-        if (this.__valid_registers.includes(reg)) {
-            if (pin >= this._min_num && pin <= this._max_num) {
-                if (val > 0) {
-                    this[reg] |= (0x1 << pin);
-                } else {
-                    this[reg] &= ~(0x1 << pin);
-                }console.log(this.input.toString(16));
-            } else {
-                throw new RangeError(
-                    "writePin(): Specified pin '" + pin + "' is out of range."
-                );
-            }
-        } else {
-            throw new RangeError(
-                "writePin(): Specified reg '" + reg + "' is not valid."
-            );
-        }
-    }
-
-    /**
-     * Converts a register value to a string and returns it. Throws an
-     *  RangeError if specified {reg} is not valid.
-     * @param {String} reg The register name.
-     * @returns {String}
-     */
-    regToStr(reg) {
-        if (this.__valid_registers.includes(reg)) {
-            return "0x" + this[reg].toString(16).toUpperCase();
-        } else {
-            throw new RangeError(
-                "regToStr(): Specified reg '" + reg + "' is not valid."
-            );
-        }
-    }
-
-    /**
-     * Converts a register string to a value and returns it.
-     * @param {String} str The register string.
-     * @returns {number}
-     */
-    strToReg(str) {
-        return parseInt(str, 16);
     }
 }

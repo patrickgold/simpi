@@ -213,6 +213,7 @@ ret_data_t __request(char *cmd) {
 // Data Sync module
 // =====
 gpioregs_t gpioregs;
+void (*isr_functions[32])(void);
 
 void _data_sync_once() {
     ret_data_t ret_data;
@@ -220,7 +221,40 @@ void _data_sync_once() {
     // Get input register from broker
     char req_get[512] = "/api/getreg/input";
     ret_data = __request(req_get);
+    uint32_t old_input = gpioregs.input;
     gpioregs.input = str_to_reg(ret_data.data[0].value);
+    for (int i = gpioregs._min_num; i <= gpioregs._max_num; i++) {
+        if (read_pin(i, &gpioregs.inten)) {
+            int v_int0 = read_pin(i, &gpioregs.int0);
+            int v_int1 = read_pin(i, &gpioregs.int1);
+            int v_inp_old = read_pin(i, &old_input);
+            int v_inp_new = read_pin(i, &gpioregs.input);
+            // rising edge
+            if (v_int1 && v_int0
+                && !v_inp_old
+                && v_inp_new
+                && isr_functions[i] != NULL
+            ) {
+                isr_functions[i]();
+            }
+            // falling edge
+            else if (v_int1 && !v_int0
+                && v_inp_old
+                && !v_inp_new
+                && isr_functions[i] != NULL
+            ) {
+                isr_functions[i]();
+            }
+            // logical change
+            else if (!v_int1 && v_int0
+                && (v_inp_old
+                ^ v_inp_new)
+                && isr_functions[i] != NULL
+            ) {
+                isr_functions[i]();
+            }
+        }
+    }
 
     // Set output/config/pwm/intrp register on broker
     char req_set_f[512] = "/api/setreg/output=%s;config=%s;pwm=%s;inten=%s;int0=%s;int1=%s";
@@ -272,8 +306,11 @@ void _cleanup(void) {
 uint32_t start_time_us;
 
 int wiringPiSetupGpio(void) {
-    reset_gpio_regs(&gpioregs);
     start_time_us = __get_sys_time();
+    reset_gpio_regs(&gpioregs);
+    for (int i = 0; i < 32; i++) {
+        isr_functions[i] = NULL;
+    }
     is_thread_valid = 1;
 #if defined(PLATFORM__WIN32)
     sync_thread = CreateThread(NULL, 0, _data_sync, NULL, 0, NULL);
@@ -317,6 +354,16 @@ int digitalRead(int pin) {
     } else {
         return -1;
     }
+}
+
+int wiringPiISR(int pin, int mode, void (*function)(void)) {
+    int v_int0 = mode == INT_EDGE_RISING || mode == INT_EDGE_BOTH;
+    int v_int1 = mode == INT_EDGE_RISING || mode == INT_EDGE_FALLING;
+    write_pin(pin, v_int0, &gpioregs.int0);
+    write_pin(pin, v_int1, &gpioregs.int1);
+    write_pin(pin, 1, &gpioregs.inten);
+    isr_functions[pin] = function;
+    return 0;
 }
 
 void delay(unsigned int howLong) {
