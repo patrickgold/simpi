@@ -112,36 +112,46 @@ button:not([disabled]):active {
     position: relative;
     width: 24px;
 }
-#status-connectivity i {
+
+#status-connectivity {
+    position: relative;
+}
+#status-connectivity .status {
     cursor: default;
-    display: block;
-    left: 50%;
+    display: flex;
+    flex-direction: row;
+    left: 0;
     position: absolute;
     top: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
     transition: 200ms ease;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    white-space: nowrap;
 }
-#status-connectivity .off {
+#status-connectivity .status.off {
     color: var(--red-400);
     opacity: 1;
     pointer-events: all;
 }
-#status-connectivity .on {
+#status-connectivity .status.on {
     color: var(--board-color);
     opacity: 0;
     pointer-events: none;
 }
-#status-connectivity[data-state="on"] .off {
+#status-connectivity[data-state="on"] .status.off {
     opacity: 0;
     pointer-events: none;
 }
-#status-connectivity[data-state="on"] .on {
+#status-connectivity[data-state="on"] .status.on {
     opacity: 1;
     pointer-events: all;
+}
+#status-connectivity .status i {
+    display: block;
+    margin-right: 8px;
 }
 
 
@@ -225,67 +235,4 @@ button:not([disabled]):active {
 }
 .btn[data-value="1"] {
     background-color: var(--btn-color-on) !important;
-}
-
-
-#gpioregs {
-    background-color: var(--grey-100);
-    border-radius: 8px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 16px;
-    padding: 8px 8px;
-    position: relative;
-    width: 100%;
-}
-#gpioregs .reg {
-    align-items: center;
-    border-radius: 4px;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 8px 8px;
-    transition: 200ms ease;
-}
-#gpioregs .reg:not(.rheader):hover {
-    background-color: var(--grey-200);
-}
-#gpioregs .reg.rheader .name {
-    color: var(--grey-400);
-}
-#gpioregs .reg .bits {
-    display: flex;
-    flex-direction: row;
-}
-#gpioregs .reg .bits .bit {
-    border: none;
-    color: var(--text-black);
-    display: flex;
-    height: 32px;
-    margin: 0 2px;
-    transition: none;
-    width: 32px;
-}
-#gpioregs .reg .bits .bit[data-type="hu"],
-#gpioregs .reg .bits .bit[data-type="u"] {
-    background-color: var(--grey-200);
-    color: var(--grey-400);
-}
-#gpioregs .reg .bits .bit[data-type="v"][data-value="1"] {
-    background-color: var(--text-black);
-    color: var(--text-white);
-}
-#gpioregs .reg .bits .bit[data-type="v"]::after {
-    color: inherit;
-    content: attr(data-value);
-    display: block;
-}
-#gpioregs .reg .bits .bit[data-type="u"]::after {
-    color: var(--grey-400);
-    content: attr(data-value);
-    display: block;
-}
-#gpioregs .reg.rheader .bits .bit {
-    background-color: transparent;
 }

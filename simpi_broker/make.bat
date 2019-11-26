@@ -1,4 +1,5 @@
 @echo off
+setlocal
 if "%1"=="build" (
     title Building executable
     echo Building executable...
@@ -19,3 +20,4 @@ if "%1"=="build" (
 ) else (
     echo Unknown command '%1' (use 'help' for more info)
 )
+endlocal

@@ -1,7 +1,8 @@
 @echo off
+setlocal
+set IN_SRC_FILES="test\blinky.c"
 if "%~1"=="build" (
     if exist ".\out\wiringPiSim.obj" (
-        set IN_SRC_FILES="test\blinky.c"
         title Building executable
         echo Building executable...
         call ..\clenv.bat /EHsc %IN_SRC_FILES% /link out\wiringPiSim.obj /out:out\wpi_test.exe
@@ -30,3 +31,4 @@ if "%~1"=="build" (
 ) else (
     echo Unknown command '%1' (use 'help' for more info)
 )
+endlocal

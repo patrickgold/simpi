@@ -1,0 +1,68 @@
+/*!gpioregs.css
+ * Stylesheet for front-end GPIO Register View and nearer pin description.
+ * 
+ * Author: Patrick Goldinger
+ * License: GPL 3.0 (see LICENSE file for details)
+ */
+
+#gpioregs {
+    background-color: var(--grey-100);
+    border-radius: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 16px;
+    padding: 8px 8px;
+    position: relative;
+    width: 100%;
+}
+#gpioregs .reg {
+    align-items: center;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 8px 8px;
+    transition: 200ms ease;
+}
+#gpioregs .reg:not(.rheader):hover {
+    background-color: var(--grey-200);
+}
+#gpioregs .reg.rheader .name {
+    color: var(--grey-400);
+}
+#gpioregs .reg .bits {
+    display: flex;
+    flex-direction: row;
+}
+#gpioregs .reg .bits .bit {
+    border: none;
+    color: var(--text-black);
+    display: flex;
+    height: 32px;
+    margin: 0 2px;
+    transition: none;
+    width: 32px;
+}
+#gpioregs .reg .bits .bit[data-type="hu"],
+#gpioregs .reg .bits .bit[data-type="u"] {
+    background-color: var(--grey-200);
+    color: var(--grey-400);
+}
+#gpioregs .reg .bits .bit[data-type="v"][data-value="1"] {
+    background-color: var(--text-black);
+    color: var(--text-white);
+}
+#gpioregs .reg .bits .bit[data-type="v"]::after {
+    color: inherit;
+    content: attr(data-value);
+    display: block;
+}
+#gpioregs .reg .bits .bit[data-type="u"]::after {
+    color: var(--grey-400);
+    content: attr(data-value);
+    display: block;
+}
+#gpioregs .reg.rheader .bits .bit {
+    background-color: transparent;
+}

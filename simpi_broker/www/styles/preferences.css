@@ -1,0 +1,60 @@
+/*!preferences.css
+ * Stylesheet for preferneces window.
+ * 
+ * Author: Patrick Goldinger
+ * License: GPL 3.0 (see LICENSE file for details)
+ */
+
+#preferences-wrapper {
+    background-color: rgba(0,0,0,0.5);
+    display: block;
+    height: 100%;
+    left: 0;
+    opacity: 1;
+    position: fixed;
+    top: 0;
+    transition: 200ms ease;
+    width: 100%;
+    z-index: 20;
+}
+#preferences-wrapper[data-visible="false"] {
+    opacity: 0;
+    z-index: -9999;
+}
+#preferences {
+    background-color: var(--grey-100);
+    border-radius: 4px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100% - 2 * 32px);
+    left: 50%;
+    overflow: hidden auto;
+    padding: 16px;
+    position: fixed;
+    top: 32px;
+    transform: translate(-50%, 0);
+    transition: inherit;
+    width: 100%;
+    max-width: 600px;
+    z-index: 21;
+}
+#preferences-wrapper[data-visible="false"] #preferences {
+    transform: translate(-50%, -120%);
+}
+#preferences h2,
+#preferences h3 {
+    margin: 0;
+    padding: 16px 0;
+}
+#preferences .pref-row {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 16px 0;
+    width: 100%;
+}
+#preferences .pref-row + .pref-row {
+    border-top: 1px solid var(--grey-400);
+}

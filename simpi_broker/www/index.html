@@ -9,6 +9,8 @@
     <meta name="description" content="SimPi graphical output.">
     <title>SimPi</title>
     <link rel="stylesheet" href="fonts/google-material-icons/material-icons.css" type="text/css">
+    <link rel="stylesheet" href="styles/gpioregs.css" type="text/css">
+    <link rel="stylesheet" href="styles/preferences.css" type="text/css">
     <link rel="stylesheet" href="styles/simpi.css" type="text/css">
 </head>
 
@@ -17,9 +19,15 @@
         <div class="header">
             <div class="group">
                 <h1>SimPi</h1>
-                <div id="status-connectivity" class="status-icon" data-state="off">
-                    <i class="mat-ico md-18 on" title="Connected to: SimPi Broker">signal_wifi_4_bar</i>
-                    <i class="mat-ico md-18 off" title="No connection to: SimPi Broker">signal_wifi_off</i>
+                <div id="status-connectivity" data-state="off">
+                    <span class="status on" title="Connected to: SimPi Broker">
+                        <i class="mat-ico md-18">signal_wifi_4_bar</i>
+                        <span>Connected</span>
+                    </span>
+                    <span class="status off" title="No connection to: SimPi Broker">
+                        <i class="mat-ico md-18">signal_wifi_off</i>
+                        <span>No connection</span>
+                    </span>
                 </div>
             </div>
             <div class="group">
@@ -41,7 +49,7 @@
             </div>
         </div>
         <div id="gpioregs"></div>
-        <div class="board" id="prefs-board">
+        <!-- <div class="board" id="prefs-board">
             <div class="board-row pref">
                 <label>Update Interval:</label>
                 <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="100">
@@ -51,7 +59,7 @@
                 <label>Hostname:</label>
                 <input id="pref-hostname-i" type="text">
             </div>
-        </div>
+        </div> -->
         <div class="board" id="rpi-ext-board">
             <div class="board-row leds">
                 <span class="hw part led" id="LED1" data-value="0"></span>
@@ -67,6 +75,21 @@
         </div>
         <div>v0.3.0.early_beta</div>
         <footer>&copy;2019 Patrick Goldinger - All rights reserved.</footer>
+    </div>
+    <div id="preferences-wrapper" data-visible="false">
+       <div id="preferences">
+           <h2>SimPi Preferences</h2>
+           <h3>General</h3>
+           <div class="pref-row">
+               <label>Update Interval:</label>
+               <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="100">
+               <span class="unit" id="pref-update-speed-o">? ms</span>
+           </div>
+           <div class="pref-row">
+               <label>Hostname:</label>
+               <input id="pref-hostname-i" type="text">
+           </div>
+       </div>
     </div>
     <script src="scripts/gpioregs.js"></script>
     <script src="scripts/simpi_main.js"></script>
