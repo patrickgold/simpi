@@ -49,17 +49,6 @@
             </div>
         </div>
         <div id="gpioregs"></div>
-        <!-- <div class="board" id="prefs-board">
-            <div class="board-row pref">
-                <label>Update Interval:</label>
-                <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="100">
-                <span class="unit" id="pref-update-speed-o">? ms</span>
-            </div>
-            <div class="board-row pref">
-                <label>Hostname:</label>
-                <input id="pref-hostname-i" type="text">
-            </div>
-        </div> -->
         <div class="board" id="rpi-ext-board">
             <div class="board-row leds">
                 <span class="hw part led" id="LED1" data-value="0"></span>
@@ -73,25 +62,13 @@
                 <button class="hw part btn" id="BTN3" data-value="0"></button>
             </div>
         </div>
-        <div>v0.3.0.early_beta</div>
+        <div>v0.4.0</div>
         <footer>&copy;2019 Patrick Goldinger - All rights reserved.</footer>
     </div>
-    <div id="preferences-wrapper" data-visible="false">
-       <div id="preferences">
-           <h2>SimPi Preferences</h2>
-           <h3>General</h3>
-           <div class="pref-row">
-               <label>Update Interval:</label>
-               <input id="pref-update-speed-i" type="range" min="10" max="1000" step="10" value="100">
-               <span class="unit" id="pref-update-speed-o">? ms</span>
-           </div>
-           <div class="pref-row">
-               <label>Hostname:</label>
-               <input id="pref-hostname-i" type="text">
-           </div>
-       </div>
-    </div>
+    <div id="preferences" data-visible="false"></div>
     <script src="scripts/gpioregs.js"></script>
+    <script src="scripts/ThemeManager.js"></script>
+    <script src="scripts/preferences.js"></script>
     <script src="scripts/simpi_main.js"></script>
     <script src="scripts/main.js"></script>
 </body>

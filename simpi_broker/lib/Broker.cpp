@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <regex>
@@ -53,6 +54,13 @@ Broker::Broker(std::string static_dir_path)
         //res.set_header("X-Content-Type-Options", "nosniff");
         //std::cout << response << std::endl;
         res.set_content(response, "text/plain");
+    });
+
+    __svr.Put("/data/prefs.json", [&](const httplib::Request &req, httplib::Response &res) {
+        std::ofstream out("./www/data/prefs.json");
+        out << req.body;
+        out.close();
+        res.set_content("SUCC", "text/plain");
     });
 
     __svr.set_base_dir(static_dir_path.c_str());

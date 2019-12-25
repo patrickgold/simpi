@@ -15,10 +15,30 @@
     --red-600: #700000;
     --red-700: #500000;
 
-    --text-white: #fefefe;
-    --text-whitish: #dedede;
-    --text-black: #010101;
-    --text-blackish: #212121;
+    --green-100: #00F800;
+    --green-200: #00E000;
+    --green-300: #00C800;
+    --green-400: #00B000;
+    --green-500: #009000;
+    --green-600: #007000;
+    --green-700: #005000;
+
+    --blue-100: #0000F8;
+    --blue-200: #0000E0;
+    --blue-300: #0000C8;
+    --blue-400: #0000B0;
+    --blue-500: #000090;
+    --blue-600: #000070;
+    --blue-700: #000050;
+
+    --text-always-white: #fefefe;
+    --text-always-whitish: #dedede;
+    --text-always-black: #010101;
+    --text-always-blackish: #212121;
+    --text-white: var(--text-always-white);
+    --text-whitish: var(--text-always-whitish);
+    --text-black: var(--text-always-black);
+    --text-blackish: var(--text-always-blackish);
 
     --board-color: #4f9867;
     --board-color-darker: #128329;
@@ -26,8 +46,6 @@
     --btn-color-on: #252525;
     --led-color-off: transparent;
     --led-color-on: #f32425;
-
-    --prefs-bg-color: var(--grey-100);
 }
 
 html,body {height:100%;}
@@ -74,8 +92,22 @@ button.red {
     --__bg-color: var(--red-400);
     --__bg-color-hover: var(--red-500);
     --__border-color: var(--red-600);
-    --__text-color: var(--text-white);
-    --__text-color-hover: var(--text-whitish);
+    --__text-color: var(--text-always-white);
+    --__text-color-hover: var(--text-alyways-whitish);
+}
+button.green {
+    --__bg-color: var(--green-400);
+    --__bg-color-hover: var(--green-500);
+    --__border-color: var(--green-600);
+    --__text-color: var(--text-always-white);
+    --__text-color-hover: var(--text-always-whitish);
+}
+button.blue {
+    --__bg-color: var(--blue-400);
+    --__bg-color-hover: var(--blue-500);
+    --__border-color: var(--blue-600);
+    --__text-color: var(--text-always-white);
+    --__text-color-hover: var(--text-always-whitish);
 }
 button:not([disabled]):hover {
     background-color: var(--__bg-color-hover);
@@ -137,7 +169,7 @@ button:not([disabled]):active {
     pointer-events: all;
 }
 #status-connectivity .status.on {
-    color: var(--board-color);
+    color: var(--green-400);
     opacity: 0;
     pointer-events: none;
 }
@@ -166,9 +198,6 @@ button:not([disabled]):active {
 #rpi-ext-board {
     background-color: var(--board-color-darker);
 }
-#prefs-board {
-    background-color: var(--prefs-bg-color);
-}
 
 .board-row {
     display: flex;
@@ -181,29 +210,6 @@ button:not([disabled]):active {
 }
 .board-row.btns {
     margin: 24px 0 64px 0;
-}
-.board-row.pref {
-    align-items: center;
-    box-sizing: border-box;
-    justify-content: space-between;
-    padding: 16px;
-}
-.board-row.pref + .board-row.pref {
-    border-top: 1px solid var(--grey-400);
-}
-.board-row.pref .unit {
-    white-space: nowrap;
-}
-.board-row.pref input {
-    background-color: var(--grey-200);
-    border: none;
-    border-radius: 4px;
-    font-family: inherit;
-    padding: 8px;
-    transition: 200ms ease;
-}
-.board-row.pref input:focus {
-    background-color: var(--grey-300);
 }
 
 .hw {

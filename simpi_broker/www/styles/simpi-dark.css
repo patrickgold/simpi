@@ -1,0 +1,14 @@
+:root {
+    --grey-100: #070707;
+    --grey-200: #171717;
+    --grey-300: #272727;
+    --grey-400: #373737;
+    --grey-500: #4F4F4F;
+    --grey-600: #575757;
+    --grey-700: #676767;
+
+    --text-white: var(--text-always-black);
+    --text-whitish: var(--text-always-blackish);
+    --text-black: var(--text-always-white);
+    --text-blackish: var(--text-always-whitish);
+}

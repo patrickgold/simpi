@@ -6,8 +6,16 @@
  */
 
  class SimPi {
-    constructor () {
+    constructor() {
         this.gpioregs = new GpioRegs(document.getElementById("gpioregs"));
+        this.themeManager = new ThemeManager({
+            darkModeStylesheetURL: "styles/simpi-dark.css",
+            mode: THM.mode.auto,
+        });
+        this.prefs = new Preferences(document.getElementById("preferences"));
+        this.prefs.addChangeListener("general__theme", (v) => {
+            this.themeManager.set(v);
+        });
         this.h2g = {
             LED1: 18,
             LED2: 23,
@@ -28,8 +36,7 @@
         };
         this.arrLED = [ "LED1", "LED2", "LED3", "LED4", ];
         this.arrBTN = [ "BTN1", "BTN2", "BTN3", ];
-        this.isPaused = false;
-        this.updateSpeedMS = 100;
+        this.isPaused = true;
         this.periodicSyncId = null;
         this.ele = {
             LED1: document.getElementById("LED1"),
@@ -39,8 +46,6 @@
             BTN1: document.getElementById("BTN1"),
             BTN2: document.getElementById("BTN2"),
             BTN3: document.getElementById("BTN3"),
-            prefUpdateSpeed_i: document.getElementById("pref-update-speed-i"),
-            prefUpdateSpeed_o: document.getElementById("pref-update-speed-o"),
             ctrlSettings: document.getElementById("ctrl-settings"),
             ctrlPause: document.getElementById("ctrl-pause"),
             ctrlPlay: document.getElementById("ctrl-play"),
@@ -48,34 +53,34 @@
             ctrlTerminate: document.getElementById("ctrl-terminate"),
             statusConnectivity: document.getElementById("status-connectivity"),
         };
-        let that = this;
         this.arrBTN.forEach((v, i) => {
-            that.ele[v].addEventListener("mousedown", function (e) {
-                this.setAttribute("data-value", "1");
-                that.gpioregs.$.input.writePin(that.h2g[v], 1);
+            this.ele[v].addEventListener("mousedown", (e) => {
+                e.target.dataset.value = "1";
+                this.gpioregs.$.input.writePin(this.h2g[v], 1);
             });
-            that.ele[v].addEventListener("mouseup", function (e) {
-                this.setAttribute("data-value", "0");
-                that.gpioregs.$.input.writePin(that.h2g[v], 0);
+            this.ele[v].addEventListener("mouseup", (e) => {
+                e.target.dataset.value = "0";
+                this.gpioregs.$.input.writePin(this.h2g[v], 0);
             });
         });
-        this.ele.prefUpdateSpeed_i.addEventListener("input", function (e) {
-            that.ele.prefUpdateSpeed_o.innerHTML = this.value + " ms";
-            that.updateSpeedMS = this.value;
-            clearInterval(that.periodicSyncId);
-            that.periodicSyncId = setInterval(that.syncData, that.updateSpeedMS, that);
+        this.ele.ctrlTerminate.addEventListener("click", () => {
+            this.terminate();
         });
-        this.ele.prefUpdateSpeed_i.addEventListener("change", function (e) {
-            that.ele.prefUpdateSpeed_o.innerHTML = this.value + " ms";
+        this.ele.ctrlSettings.addEventListener("click", () => {
+            this.prefs.prefElement.dataset.visible = true;
         });
-        this.ele.prefUpdateSpeed_i.dispatchEvent(new Event('input', {
-            bubbles: true,
-            cancelable: true,
-        }));
-        this.ele.ctrlTerminate.addEventListener("click", () => { that.terminate(); });
-        this.ele.ctrlReset.addEventListener("click", () => { that.reset(); });
-        this.ele.ctrlPause.addEventListener("click", () => { that.pause(); });
-        this.ele.ctrlPlay.addEventListener("click", () => { that.play(); });
+        this.ele.ctrlReset.addEventListener("click", () => {
+            this.reset();
+        });
+        this.ele.ctrlPause.addEventListener("click", () => {
+            this.pause();
+        });
+        this.ele.ctrlPlay.addEventListener("click", () => {
+            this.play();
+        });
+        this.prefs.init().then(() => {
+            this.play();
+        });
     }
 
     /**
@@ -97,7 +102,9 @@
         this.isPaused = false;
         this.ele.ctrlPlay.classList.add("hide");
         this.ele.ctrlPause.classList.remove("hide");
-        this.periodicSyncId = setInterval(this.syncData, this.updateSpeedMS, this);
+        this.periodicSyncId = setInterval(() => {
+            this.syncData();
+        }, this.prefs.get("sync__update_timeout_ms"));
     }
 
     /**
@@ -112,7 +119,7 @@
         let that = this;
         fetch("/api/action/reset").then((response) => {
             response.text().then((data) => {
-                let parsedData = that.parseSimPiTransferData(data);
+                let parsedData = SimPi.parseSimPiTransferData(data);
                 if (parsedData[0].status == "SUCC") {
                     alert("Reset done on SimPi Broker.");
                 }
@@ -127,12 +134,11 @@
      * Terminate the SimPi Broker (and then the SimPi Client) if possible.
      */
     terminate() {
-        let that = this;
         fetch("/api/action/terminate").then((response) => {
             response.text().then((data) => {
-                let parsedData = that.parseSimPiTransferData(data);
+                let parsedData = SimPi.parseSimPiTransferData(data);
                 if (parsedData[0].status == "SUCC") {
-                    document.write("Terminated SimPi Broker. You can now close this browser tab.");
+                    document.write("<span style='font-style:italic;font-family:sans-serif'>Terminated SimPi Broker. You can now close this browser tab.");
                 }
             });
         }).catch((err) => {
@@ -142,38 +148,37 @@
     
     /**
      * Syncs all registers.
-     * @param {SimPi} that Reference to the 'this' object of SimPi.
      */
-    syncData(that) {
-        if (that.isPaused) { return; }
+    syncData() {
+        if (this.isPaused) { return; }
         let getURL = "/api/getreg/" +
-            that.gpioregs.$.output.key + ";" +
-            that.gpioregs.$.config.key + ";" +
-            that.gpioregs.$.pwm.key + ";" +
-            that.gpioregs.$.inten.key + ";" +
-            that.gpioregs.$.int0.key + ";" +
-            that.gpioregs.$.int1.key;
+            this.gpioregs.$.output.key + ";" +
+            this.gpioregs.$.config.key + ";" +
+            this.gpioregs.$.pwm.key + ";" +
+            this.gpioregs.$.inten.key + ";" +
+            this.gpioregs.$.int0.key + ";" +
+            this.gpioregs.$.int1.key;
         fetch(getURL).then((response) => {
             response.text().then((data) => {
-                let parsedData = that.parseSimPiTransferData(data);
+                let parsedData = SimPi.parseSimPiTransferData(data);
                 parsedData.forEach((v, i) => {
-                    that.gpioregs.$[v.key].fromString(v.value);
-                    if (v.key == that.gpioregs.$.output.key) {
-                        that.ele["LED1"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED1"]));
-                        that.ele["LED2"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED2"]));
-                        that.ele["LED3"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED3"]));
-                        that.ele["LED4"].setAttribute("data-value", that.gpioregs.$.output.readPin(that.h2g["LED4"]));
+                    this.gpioregs.$[v.key].fromString(v.value);
+                    if (v.key == this.gpioregs.$.output.key) {
+                        this.ele["LED1"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED1"]));
+                        this.ele["LED2"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED2"]));
+                        this.ele["LED3"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED3"]));
+                        this.ele["LED4"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED4"]));
                     }
                 });
             });
-            that.ele.statusConnectivity.dataset.state = "on";
+            this.ele.statusConnectivity.dataset.state = "on";
         }).catch((err) => {
-            that.ele.statusConnectivity.dataset.state = "off";
+            this.ele.statusConnectivity.dataset.state = "off";
         });
         let setURL = "/api/setreg/" +
-            that.gpioregs.$.input.key + "=" + that.gpioregs.$.input.toString();
+            this.gpioregs.$.input.key + "=" + this.gpioregs.$.input.toString();
         fetch(setURL).catch((err) => {
-            that.ele.statusConnectivity.dataset.state = "off";
+            this.ele.statusConnectivity.dataset.state = "off";
         });
     }
 
@@ -182,7 +187,7 @@
      * @param {String} data The raw string to be parsed.
      * @returns {Object}
      */
-    parseSimPiTransferData(data) {
+    static parseSimPiTransferData(data) {
         let ret = [];
         data.split("\n").forEach((v, i) => {
             if (v.startsWith(">")) {
