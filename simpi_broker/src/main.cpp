@@ -7,14 +7,18 @@
 
 // this defines the file paths in Windows
 #if defined(_WIN32) || defined(_WIN64)
+    #define _SUPPRESS_OUTPUT " >nul 2>&1"
+    #define _OPEN_URL_CMD "start"
     #define APPDATA_PATH std::string(getenv("APPDATA")) + "\\simpi"
     #define PREFS_FILE "\\preferences.json"
-    #define STATIC_SERVER_PATH ".\\www\\"
+    #define STATIC_SERVER_PATH ".\\www"
 // this defines the file paths in GNU/Linux
 #elif defined(__linux__) || defined(__linux) || defined(linux)
+    #define _SUPPRESS_OUTPUT " > /dev/null"
+    #define _OPEN_URL_CMD "xdg-open"
     #define APPDATA_PATH std::string(getenv("HOME")) + "/.simpi"
     #define PREFS_FILE "/preferences.json"
-    #define STATIC_SERVER_PATH "./www/"
+    #define STATIC_SERVER_PATH "./www"
 #endif
 
 #include <iostream>
@@ -22,7 +26,17 @@
 #include "../lib/Broker.hpp"
 
 int main(int argc, char** argv) {
-    std::system(("mkdir " + APPDATA_PATH).c_str());
+    std::cout << "################" << std::endl;
+    std::cout << "# SimPi Broker #" << std::endl;
+    std::cout << "# v0.4.3       #" << std::endl;
+    std::cout << "################" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Opening http://127.0.0.1:32000 in your default browser..." << std::endl;
+    std::system((_OPEN_URL_CMD + std::string(" http://127.0.0.1:32000")).c_str());
+    std::cout << std::endl;
+
+    std::system(("mkdir " + APPDATA_PATH + _SUPPRESS_OUTPUT).c_str());
+
     simpi::Broker broker(STATIC_SERVER_PATH, APPDATA_PATH + PREFS_FILE);
     broker.listen("127.0.0.1", 32000);
 
