@@ -1,5 +1,5 @@
 /*!GpioRegister.cpp
- * Source Code File for Raspberry Pi GPIO Register simulation.
+ * Source Code File for SimPi Broker.
  * 
  * Author: Patrick Goldinger
  * License: GPL 3.0 (see LICENSE file for details)
@@ -16,15 +16,42 @@
 
 using namespace simpi;
 
-Broker::Broker(std::string static_dir_path)
-    : __svr(), __gpioregs{}, __broker_status_code(-1)
-{
+Broker::Broker(
+    std::string static_dir_path,
+    std::string prefs_path
+) : __svr(), __gpioregs{}, __broker_status_code(-1) {
     gpioregs::reset_gpio_regs(&__gpioregs);
+    __prefs_path = prefs_path;
 
     if (!__svr.is_valid()) {
         std::cout << "Server has an error...\n";
         return;
     }
+
+    __svr.Get("/api/prefs", [&](const httplib::Request &req, httplib::Response &res) {
+        //std::cout << __prefs_path << std::endl;
+        std::string tmp;
+        std::ifstream inp(__prefs_path);
+        if (!inp.is_open()) {
+            res.set_content("FAIL~IOERROR", "text/plain");
+        } else {
+            inp >> tmp;
+            inp.close();
+            res.set_content(tmp, "application/json");
+        }
+    });
+
+    __svr.Put("/api/prefs", [&](const httplib::Request &req, httplib::Response &res) {
+        //std::cout << __prefs_path << std::endl;
+        std::ofstream out(__prefs_path);
+        if (!out.is_open()) {
+            res.set_content("FAIL~IOERROR", "text/plain");
+        } else {
+            out << req.body;
+            out.close();
+            res.set_content("SUCC", "text/plain");
+        }
+    });
 
     __svr.Get(R"(/api/(.*))", [&](const httplib::Request &req, httplib::Response &res) {
         //#ifdef DEBUG
@@ -42,25 +69,12 @@ Broker::Broker(std::string static_dir_path)
             response = _getreg(cmd.substr(7));
         } else if (std::regex_match(cmd, _, std::regex("setreg/(.*)"))) {
             response = _setreg(cmd.substr(7));
-        } else if (std::regex_match(cmd, _, std::regex("getpref/(.*)"))) {
-            response = _getpref(cmd.substr(8));
-        } else if (std::regex_match(cmd, _, std::regex("setpref/(.*)"))) {
-            response = _setpref(cmd.substr(8));
         } else if (std::regex_match(cmd, _, std::regex("action/(.*)"))) {
             response = _action(cmd.substr(7));
         } else {
             response = "op:" + cmd + "\n>FAIL~UNKAPICALL;;\n";
         }
-        //res.set_header("X-Content-Type-Options", "nosniff");
-        //std::cout << response << std::endl;
         res.set_content(response, "text/plain");
-    });
-
-    __svr.Put("/data/prefs.json", [&](const httplib::Request &req, httplib::Response &res) {
-        std::ofstream out("./www/data/prefs.json");
-        out << req.body;
-        out.close();
-        res.set_content("SUCC", "text/plain");
     });
 
     __svr.set_base_dir(static_dir_path.c_str());
@@ -204,14 +218,6 @@ std::string Broker::_setreg(std::string cmd) {
     return response;
 }
 
-std::string Broker::_getpref(std::string cmd) {
-    return "op:getpref\n>FAIL~NYI;;\n";
-}
-
-std::string Broker::_setpref(std::string cmd) {
-    return "op:setpref\n>FAIL~NYI;;\n";
-}
-
 std::string Broker::_action(std::string cmd) {
     std::string op = "op:action\n";
     if (cmd == "terminate") {
@@ -222,4 +228,9 @@ std::string Broker::_action(std::string cmd) {
         return ">SUCC;reset;Reset done.\n";
     }
     return op + ">FAIL~UNKACT;" + cmd + ";Invalid action name.\n";
+}
+
+std::string Broker::__get_app_data_dir() {
+    char *val = getenv("APPDATA");
+    return val == NULL ? std::string("") : std::string(val);
 }

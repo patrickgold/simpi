@@ -1,5 +1,5 @@
 /*!GpioRegister.hpp
- * Header File for Raspberry Pi GPIO Register simulation.
+ * Header File for SimPi Broker.
  * 
  * Author: Patrick Goldinger
  * License: GPL 3.0 (see LICENSE file for details)
@@ -16,7 +16,10 @@ namespace simpi {
 
 class Broker {
     public:
-    Broker(std::string static_dir_path);
+    Broker(
+        std::string static_dir_path,
+        std::string prefs_path
+    );
     bool listen(const char* host, int port);
     int get_broker_status(void);
     protected:
@@ -24,13 +27,13 @@ class Broker {
     std::string _setpin(std::string cmd);
     std::string _getreg(std::string cmd);
     std::string _setreg(std::string cmd);
-    std::string _getpref(std::string cmd);
-    std::string _setpref(std::string cmd);
     std::string _action(std::string cmd);
     private:
     httplib::Server __svr;
     gpioregs::gpioregs_t __gpioregs;
+    std::string __prefs_path;
     int __broker_status_code;
+    std::string __get_app_data_dir();
 };
 
 }

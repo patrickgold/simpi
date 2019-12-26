@@ -60,7 +60,7 @@ class Preferences {
     }
 
     async syncBrokerToLocal() {
-        await fetch("/data/prefs.json").then(async (response) => {
+        await fetch("/api/prefs").then(async (response) => {
             await response.json().then((prefs) => {
                 this.__localPrefs = prefs;
                 for (let key in this.__callbacks) {
@@ -79,7 +79,7 @@ class Preferences {
     }
 
     async syncLocalToBroker() {
-        await fetch("/data/prefs.json", {
+        await fetch("/api/prefs", {
             method: "PUT",
             headers: { 'Content-Type': 'application/json' },
             referrerPolicy: "no-referrer",
@@ -211,6 +211,7 @@ class Preferences {
                     }
                 };
                 process(config);
+                this.reset(); // set local prefs to default for the beginning
                 let buttonRow = document.createElement("div");
                 buttonRow.classList.add("btn-row");
                 let saveBtn = document.createElement("button");
