@@ -78,7 +78,7 @@ class ThemeManager {
      * @param {string} str The string to be formatted and outputted.
      */
     _consoleLog(str) {
-        let prefix = ">> DarkModeToggle : ";
+        let prefix = ">> ThemeManager : ";
         console.log(prefix + str.replace(/\n/g, "\n" + " ".repeat(prefix.length) + "> "));
     }
 }

@@ -34,6 +34,19 @@
     width: 100%;
     max-width: 600px;
 }
+#preferences-window .pref-group {
+    display: flex;
+    flex-direction: column;
+    transition: inherit;
+}
+#preferences-window .pref-group.lv1 {
+    background-color: var(--white);
+    border: 1px solid var(--grey-400);
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin: 8px 0;
+    padding: 0 8px;
+}
 #preferences-window h2 {
     color: var(--green-400);
 }
@@ -50,6 +63,10 @@
     justify-content: space-between;
     padding: 8px 0;
     width: 100%;
+}
+#preferences-window .pref-row .unit {
+    min-width: 80px;
+    text-align: right;
 }
 #preferences-window .pref-row label {
     flex-grow: 1;
@@ -75,7 +92,7 @@
     width: 150px;
 }
 #preferences-window .pref-row .select::after {
-    background-color: var(--text-blackish);
+    background-color: var(--blackish);
     clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
     content: "";
     display: block;

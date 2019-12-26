@@ -107,6 +107,11 @@ class Preferences {
             if (this.__defaultPrefs.hasOwnProperty(key)) {
                 let pref = document.getElementById(key);
                 pref.value = this.get(key);
+                if (pref.tagName.toLowerCase() == "input") {
+                    if (pref.type == "range") {
+                        pref.dispatchEvent(new Event("input"));
+                    }
+                }
             }
         }
     }
@@ -138,21 +143,25 @@ class Preferences {
                 let prefWindowEle = document.createElement("div");
                 prefWindowEle.id = "preferences-window";
                 this.prefElement.appendChild(prefWindowEle);
-                let process = (chunk, intendLevel = 0) => {
+                let process = (prefGroupEle, chunk, intendLevel = 0) => {
                     if (chunk.hasOwnProperty("type")) {
                         if (chunk["type"].startsWith("group")) {
+                            let prefGroupEleTmp = document.createElement("div");
+                            prefGroupEleTmp.classList.add("pref-group");
+                            prefGroupEleTmp.classList.add("lv" + intendLevel);
                             let h = document.createElement("h" + (intendLevel + 2));
                             h.innerHTML = chunk["heading"];
-                            prefWindowEle.appendChild(h);
+                            prefGroupEleTmp.appendChild(h);
                             if (chunk.hasOwnProperty("children")) {
                                 if (Array.isArray(chunk["children"])) {
                                     chunk["children"].forEach((v, i) => {
-                                        process(v, intendLevel + 1);
+                                        process(prefGroupEleTmp, v, intendLevel + 1);
                                     });
                                 } else {
                                     console.error("Property 'children' must be an array!!");
                                 }
                             }
+                            prefGroupEle.appendChild(prefGroupEleTmp);
                         } else if (intendLevel == 0) {
                             console.error("Root level of pref config must be group!!");
                         } else if (chunk["type"].startsWith("pref")) {
@@ -204,13 +213,13 @@ class Preferences {
                             if (unit.innerHTML != "") {
                                 prefRow.appendChild(unit);
                             }
-                            prefWindowEle.appendChild(prefRow);
+                            prefGroupEle.appendChild(prefRow);
                         }
                     } else {
                         console.error("Required field 'type' missing.");
                     }
                 };
-                process(config);
+                process(prefWindowEle, config);
                 this.reset(); // set local prefs to default for the beginning
                 let buttonRow = document.createElement("div");
                 buttonRow.classList.add("btn-row");

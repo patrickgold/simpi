@@ -31,14 +31,14 @@
     --blue-600: #000070;
     --blue-700: #000050;
 
-    --text-always-white: #fefefe;
-    --text-always-whitish: #dedede;
-    --text-always-black: #010101;
-    --text-always-blackish: #212121;
-    --text-white: var(--text-always-white);
-    --text-whitish: var(--text-always-whitish);
-    --text-black: var(--text-always-black);
-    --text-blackish: var(--text-always-blackish);
+    --always-white: #fefefe;
+    --always-whitish: #dedede;
+    --always-black: #010101;
+    --always-blackish: #212121;
+    --white: var(--always-white);
+    --whitish: var(--always-whitish);
+    --black: var(--always-black);
+    --blackish: var(--always-blackish);
 
     --board-color: #4f9867;
     --board-color-darker: #128329;
@@ -51,7 +51,7 @@
 html,body {height:100%;}
 body {
     background-color: var(--grey-200);
-    color: var(--text-black);
+    color: var(--black);
     font-family: 'Courier New', Courier, monospace;
     margin: 0;
     padding: 0;
@@ -70,8 +70,8 @@ button {
     --__bg-color: var(--grey-400);
     --__bg-color-hover: var(--grey-500);
     --__border-color: var(--grey-600);
-    --__text-color: var(--text-black);
-    --__text-color-hover: var(--text-blackish);
+    --__text-color: var(--black);
+    --__text-color-hover: var(--blackish);
 
     background-color: var(--__bg-color);
     border: none;
@@ -92,22 +92,22 @@ button.red {
     --__bg-color: var(--red-400);
     --__bg-color-hover: var(--red-500);
     --__border-color: var(--red-600);
-    --__text-color: var(--text-always-white);
-    --__text-color-hover: var(--text-alyways-whitish);
+    --__text-color: var(--always-white);
+    --__text-color-hover: var(--always-whitish);
 }
 button.green {
     --__bg-color: var(--green-400);
     --__bg-color-hover: var(--green-500);
     --__border-color: var(--green-600);
-    --__text-color: var(--text-always-white);
-    --__text-color-hover: var(--text-always-whitish);
+    --__text-color: var(--always-white);
+    --__text-color-hover: var(--always-whitish);
 }
 button.blue {
     --__bg-color: var(--blue-400);
     --__bg-color-hover: var(--blue-500);
     --__border-color: var(--blue-600);
-    --__text-color: var(--text-always-white);
-    --__text-color-hover: var(--text-always-whitish);
+    --__text-color: var(--always-white);
+    --__text-color-hover: var(--always-whitish);
 }
 button:not([disabled]):hover {
     background-color: var(--__bg-color-hover);

@@ -18,9 +18,11 @@
 #endif
 
 #include <iostream>
+#include <cstdlib>
 #include "../lib/Broker.hpp"
 
 int main(int argc, char** argv) {
+    std::system(("mkdir " + APPDATA_PATH).c_str());
     simpi::Broker broker(STATIC_SERVER_PATH, APPDATA_PATH + PREFS_FILE);
     broker.listen("127.0.0.1", 32000);
 

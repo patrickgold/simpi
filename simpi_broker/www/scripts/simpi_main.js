@@ -46,6 +46,7 @@
             BTN1: document.getElementById("BTN1"),
             BTN2: document.getElementById("BTN2"),
             BTN3: document.getElementById("BTN3"),
+            ctrlAbout: document.getElementById("ctrl-about"),
             ctrlSettings: document.getElementById("ctrl-settings"),
             ctrlPause: document.getElementById("ctrl-pause"),
             ctrlPlay: document.getElementById("ctrl-play"),
@@ -65,6 +66,9 @@
         });
         this.ele.ctrlTerminate.addEventListener("click", () => {
             this.terminate();
+        });
+        this.ele.ctrlAbout.addEventListener("click", () => {
+            alert("See https://github.com/patrickgold/simpi");
         });
         this.ele.ctrlSettings.addEventListener("click", () => {
             this.prefs.prefElement.dataset.visible = true;

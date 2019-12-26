@@ -37,7 +37,7 @@
 }
 #gpioregs .reg .bits .bit {
     border: none;
-    color: var(--text-black);
+    color: var(--black);
     display: flex;
     height: 32px;
     margin: 0 2px;
@@ -50,8 +50,8 @@
     color: var(--grey-400);
 }
 #gpioregs .reg .bits .bit[data-type="v"][data-value="1"] {
-    background-color: var(--text-black);
-    color: var(--text-white);
+    background-color: var(--black);
+    color: var(--white);
 }
 #gpioregs .reg .bits .bit[data-type="v"]::after {
     color: inherit;
