@@ -14,7 +14,7 @@
     #define STATIC_SERVER_PATH ".\\www"
 // this defines the file paths in GNU/Linux
 #elif defined(__linux__) || defined(__linux) || defined(linux)
-    #define _SUPPRESS_OUTPUT " > /dev/null"
+    #define _SUPPRESS_OUTPUT " > /dev/null 2>&1"
     #define _OPEN_URL_CMD "xdg-open"
     #define APPDATA_PATH std::string(getenv("HOME")) + "/.simpi"
     #define PREFS_FILE "/preferences.json"
@@ -25,12 +25,15 @@
 #include <cstdlib>
 #include "../lib/Broker.hpp"
 
+using namespace simpi;
+
 int main(int argc, char** argv) {
     std::cout << "################" << std::endl;
     std::cout << "# SimPi Broker #" << std::endl;
     std::cout << "# v0.4.3       #" << std::endl;
     std::cout << "################" << std::endl;
     std::cout << std::endl;
+    // #TODO: Insert locking mechanism to prevent multiple open instances
     std::cout << "Opening http://127.0.0.1:32000 in your default browser..." << std::endl;
     std::system((_OPEN_URL_CMD + std::string(" http://127.0.0.1:32000")).c_str());
     std::cout << std::endl;

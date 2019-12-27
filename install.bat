@@ -36,7 +36,7 @@ cd ..
 :: #2 - Setup wiringPi lib
 echo Building wiringPi lib...
 cd simpi_wiringpi
-call make.bat build >nul 2>&1
+call make.bat build-wiring-pi-sim >nul 2>&1
 xcopy "out\wiringPiSim.obj" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 cd ..
 :: #3 - Copy clenv.bat, LICENSE, README.md and uninstall.bat

@@ -168,7 +168,7 @@ static inline int socket_create(int *sock) {
 #if defined(PLATFORM__WIN32)
     if (setsockopt(*sock, IPPROTO_TCP, TCP_NODELAY, (char *)&nd, sizeof(nd)) < 0) {
 #elif defined(PLATFORM__LINUX)
-    if (setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &nd, sizeof(nd)) < 0) {
+    if (setsockopt(*sock, IPPROTO_TCP, TCP_NODELAY, &nd, sizeof(nd)) < 0) {
 #endif
         fputs("[ERR] wiringPiSim: Failed to set socket opt TCP_NODELAY.\n", stderr);
         return -1;
