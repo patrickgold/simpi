@@ -1,41 +1,78 @@
-# simpi
+# SimPi
 A tool for simulating wiringPi projects written for the Raspberry Pi on
 Windows and GNU/Linux.
 
-*NOTE: this project is currently in alpha version and therefore only limited 
-features of wiringPi are available!*
+*NOTE: this project is currently in beta version. Features may not work as
+intended or may behave unexpectedly!*
 
-## SimPi Broker
+*NOTE: altough this project aims to support both Windows and GNU/Linux,
+currently the focus lies on GNU/Linux due to its easier and better support
+of used features in this project.*
 
-This is the core of the project and manages the GPIO Register of the simulated
-Raspberry Pi as well as the front-end user interface for the browser.
+## Features
+* Simulates the Raspberry Pi GPIO Register (currently of the 3B+ model)
+* Allows you to build and run programs written with the wringPi library
+* Supports most of the original library functions
+* Works on GNU/Linux and (with complications) Windows
 
-### How to build and run
+## Prerequisites
+In order to build and run this project, the following tools should be installed
+on your machine:
+* GNU/Linux:
+  * gcc/g++ compiler suite
+  * git
+  * make
+  * Library pthread
+* Windows:
+  * Visual Studio C++ Compiler
+  * Git (you can also dowload the zip of this repo and unpack it, if you do
+    not want to install git on Windows)
 
-1. Change to the directory `simpi_broker`
-2. Execute `make build` in the shell or cmd
-3. Execute `make run` in the shell or cmd to run the SimPi Broker
-4. Open [`http://127.0.0.1:32000`](http://127.0.0.1:32000) in your browser
-    (Firefox, Chromium-based or Safari only!!)
+## Installation
 
-## SimPi wiringPi
+### From Source (GNU/Linux)
+```bash
+$ git clone https://github.com/patrickgold/simpi.git
+$ cd simpi/
+$ chmod +x install.sh
+$ sudo ./install.sh
+```
 
-This is the library part of the library wiringPi which emulates to be the real
-library, but instead just communicates with the broker. The header file
-`wiringPi.h` is the original one of the wiringPi library and has not been
-modified.
+### From Source (Windows)
+Open the Command Prompt **as Admin**, then
+```cmd
+> cd %USERPROFILE%\Downloads
+> git clone https://github.com/patrickgold/simpi.git
+> cd simpi
+> notepad clenv.bat
+```
+Change the `ENV_SETUP_PATH` variable to match your Visual Studio C++
+installation (directory of `cl.exe`), then hit save and close notepad.
 
-### How to build and run
+This [documentation](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019#use-the-developer-tools-in-an-existing-command-window) by Microsoft may help you to locate `cl.exe`.
+```cmd
+> install.bat
+```
 
-1. Change to the directory `simpi_wiringpi`
-2. Execute `make build-wiring-pi-sim` in the shell or cmd to build the library
-    for your system
-3. Locate the `make.bat` or `makefile` and change the `IN_SRC_FILES` or `SRC`
-    env variable to the file you want to compile
-4. Execute `make build` in the shell or cmd to build the executable of your
-    file
-5. Make sure you have started the SimPi Broker
-6. Execute `make run` in the shell or cmd to run your program
+## Usage
+Search for "SimPi" in your start menu, there you should find a shortcut to the
+SimPi Broker executable.
+
+If there is no shortcut, you can locate the executable in the following folder:
+* GNU/Linux: `/opt/simpi`
+* Windows: `$programfiles\simpi`
+
+The broker then automatically opens `127.0.0.1:32000` in your default browser.
+
+## Compiling Programs
+
+### GNU/Linux
+Use the library flag `-lwiringPiSim` of gcc to compile your wiringPi program.
+When running the compiled program, it willl try to communicate with the SimPi
+Broker. If this fails, an error message will be outputted.
+
+### Windows
+(todo: create windows compilation script)
 
 ## Used libraries and fonts
 - [wiringPi](https://github.com/WiringPi/WiringPi)
@@ -44,4 +81,8 @@ modified.
     by [yhirose](https://github.com/yhirose)
 - [Material Icons](https://github.com/google/material-design-icons)
     by [google](https://github.com/google)
+
+## License
+This project is licensed under the GNU General Public License v3.0 - see the
+[LICENSE](LICENSE) file for details.
 
