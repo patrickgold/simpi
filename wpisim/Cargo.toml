@@ -1,0 +1,11 @@
+[package]
+name = "wpisim"
+version = "0.1.0"
+authors = ["Patrick Goldinger"]
+edition = "2018"
+
+[dependencies]
+
+[lib]
+name = "libwpisim"
+crate-type = ["staticlib"]
