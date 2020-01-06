@@ -49,7 +49,7 @@ Open the Command Prompt **as Admin**, then
 Change the `ENV_SETUP_PATH` variable to match your Visual Studio C++
 installation (directory of `cl.exe`), then hit save and close notepad.
 
-This [documentation](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019#use-the-developer-tools-in-an-existing-command-window) by Microsoft may help you to locate `cl.exe`.
+This [documentation](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=vs-2019#developer_command_file_locations) by Microsoft may help you to locate `cl.exe`.
 ```cmd
 > install.bat
 ```

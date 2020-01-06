@@ -1,4 +1,4 @@
-/*!GpioRegister.cpp
+/*!Broker.cpp
  * Source Code File for SimPi Broker.
  * 
  * Author: Patrick Goldinger

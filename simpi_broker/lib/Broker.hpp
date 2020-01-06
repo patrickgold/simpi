@@ -1,4 +1,4 @@
-/*!GpioRegister.hpp
+/*!Broker.hpp
  * Header File for SimPi Broker.
  * 
  * Author: Patrick Goldinger
