@@ -101,7 +101,7 @@ impl RegMemory {
             inten:  Reg::from(0x00000000),
             int0:   Reg::from(0x00000000),
             int1:   Reg::from(0x00000000),
-        }
+        };
     }
     pub fn reset(&mut self) {
         self.input.write(0x00000000);
@@ -111,6 +111,32 @@ impl RegMemory {
         self.int0.write(0x00000000);
         self.int1.write(0x00000000);
     }
+    pub fn get(&mut self, key: String) -> Result<&mut Reg, String> {
+        let key = key.to_ascii_lowercase();
+        match &key[..] {
+            "input" => {
+                return Ok(&mut self.input);
+            },
+            "output" => {
+                return Ok(&mut self.output);
+            },
+            "config" => {
+                return Ok(&mut self.config);
+            },
+            "inten" => {
+                return Ok(&mut self.inten);
+            },
+            "int0" => {
+                return Ok(&mut self.int0);
+            },
+            "int1" => {
+                return Ok(&mut self.int1);
+            },
+            _ => {
+                return Err("Invalid register name".to_owned());
+            }
+        };
+    }
 }
 
 
@@ -119,7 +145,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_reset() {
+    fn RegMemory__reset() {
         let mut regmem = RegMemory::new();
         regmem.input.write(0x12345678u32);
         regmem.config.write(0x87654321u32);
@@ -129,26 +155,26 @@ mod tests {
     }
 
     #[test]
-    fn test_read_pin() {
+    fn Reg__read_pin() {
         let reg = Reg::from(0x00FF0000u32);
         assert_eq!(reg.read_pin(23), 1);
     }
 
     #[test]
-    fn test_write_pin() {
+    fn Reg__write_pin() {
         let mut reg = Reg::from(0x00FF0000u32);
         reg.write_pin(23, 0);
         assert_eq!(reg.read(), 0x007F0000u32);
     }
 
     #[test]
-    fn test_reg_to_str() {
+    fn Reg__read_to_str() {
         let reg = Reg::from(0x00FF0000u32);
         assert_eq!(reg.read_to_str(), String::from("0x00FF0000"));
     }
 
     #[test]
-    fn test_str_to_reg() {
+    fn Reg__write_from_str() {
         let reg_str = String::from("0x00FF0000");
         let mut reg = Reg::from(0x0u32);
         reg.write_from_str(reg_str);
@@ -156,7 +182,7 @@ mod tests {
     }
     #[test]
     #[should_panic]
-    fn test_str_to_reg_should_panic() {
+    fn Reg__write_from_str__should_panic() {
         let reg_str = String::from("0x00XYZ000");
         let mut reg = Reg::from(0x0u32);
         reg.write_from_str(reg_str);
