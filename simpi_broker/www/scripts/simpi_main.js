@@ -85,6 +85,10 @@
         this.prefs.init().then(() => {
             this.play();
         });
+        window.ws = new WebSocket("ws://127.0.0.1:32001", "rust-websocket");
+        window.ws.onmessage = function (event) {
+            console.log("WS ANSWER: " + event.data);
+        }
     }
 
     /**

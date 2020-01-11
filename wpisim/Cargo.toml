@@ -5,7 +5,9 @@ authors = ["Patrick Goldinger"]
 edition = "2018"
 
 [dependencies]
+lazy_static = "1.4.0"
+websocket = "0.24.0"
 
 [lib]
-name = "libwpisim"
-crate-type = ["staticlib"]
+name = "wpisim"
+crate-type = ["dylib"]
