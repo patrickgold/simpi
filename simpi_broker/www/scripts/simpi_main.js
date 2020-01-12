@@ -97,7 +97,7 @@
         this.webSocket.onmessage = (ev) => this.receiveData(ev);
         this.webSocket.onclose = (ev) => {
             this.ele.statusWpiSim.dataset.state = "off";
-        };
+        };window.ws = this.webSocket;
     }
 
     /**
@@ -133,18 +133,7 @@
         }, this);
         this.gpioregs.reset();
         this.gpioregs.$.input.syncAllToUi();
-        let that = this;
-        fetch("/api/action/reset").then((response) => {
-            response.text().then((data) => {
-                let parsedData = SimPi.parseSimPiTransferData(data);
-                if (parsedData[0].status == "SUCC") {
-                    alert("Reset done on SimPi Broker.");
-                }
-            });
-        }).catch((err) => {
-            alert("Error: Couldn't reach SimPi Broker.");
-            this.ele.statusBroker.dataset.state = "off";
-        });
+        this.webSocket.send("reset");
     }
 
     /**
@@ -154,13 +143,14 @@
         fetch("/api/action/terminate").then((response) => {
             response.text().then((data) => {
                 let parsedData = SimPi.parseSimPiTransferData(data);
-                if (parsedData[0].status == "SUCC") {
+                if (parsedData.status.toUpperCase() == "SUCC") {
                     document.write("<span style='font-style:italic;font-family:sans-serif'>Terminated SimPi Broker. You can now close this browser tab.");
                 }
             });
         }).catch((err) => {
             alert("SimPi Broker is either already terminated or the action failed to succeed.");
         });
+        this.webSocket.send("terminate");
     }
     
     /**
@@ -171,14 +161,18 @@
         if (this.isPaused) { return; }
         //console.log(event.data);
         this.ele.statusWpiSim.dataset.state = "on";
-        let ret_data = SimPi.parseSimPiTransferData(event.data);
-        if (ret_data.command.toLowerCase() == "getreg") {
-            this.gpioregs.$[ret_data.key.toLowerCase()].fromString(ret_data.value);
-            if (ret_data.key.toLowerCase() == "output") {
+        let response = SimPi.parseSimPiTransferData(event.data);
+        if (response.command.toLowerCase() == "getreg") {
+            this.gpioregs.$[response.key.toLowerCase()].fromString(response.value);
+            if (response.key.toLowerCase() == "output") {
                 this.ele["LED1"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED1"]));
                 this.ele["LED2"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED2"]));
                 this.ele["LED3"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED3"]));
                 this.ele["LED4"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED4"]));
+            }
+        } else if (response.command.toLowerCase() == "reset") {
+            if (response.status.toUpperCase() == "SUCC") {
+                alert("Reset done!");
             }
         }
     }

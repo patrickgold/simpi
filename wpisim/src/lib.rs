@@ -4,13 +4,13 @@
 
 #![allow(non_snake_case)]
 #![allow(dead_code)]
-//#![allow(unused_variables)]
 
 #[macro_use]
 extern crate lazy_static;
 
 mod gpioregs;
 mod lsim;
+mod log;
 
 use std::sync::Mutex;
 
@@ -20,7 +20,6 @@ lazy_static! {
 
 #[no_mangle]
 pub extern "C" fn wiringPiSetupGpio() -> i32 {
-    println!("Hello from Rust!");
     let mut core = CORE.lock().unwrap();
     core.setup();
     return 0;

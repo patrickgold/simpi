@@ -10,6 +10,7 @@ extern crate tungstenite;
 use std::{thread, time};
 use std::sync::{Mutex, Arc};
 use crate::gpioregs;
+use crate::log;
 use std::net::TcpListener;
 use tungstenite::{server::accept, Message};
 
@@ -44,6 +45,7 @@ impl LSimCore {
     }
 
     pub fn setup(&mut self) -> i32 {
+        log::info("Init wpisim module...");
         self.start_time_us = time::Instant::now();
         let reg_memory = Arc::clone(&self.reg_memory);
         let isr_routines = Arc::clone(&self.isr_routines);
@@ -55,38 +57,38 @@ impl LSimCore {
                 thread::spawn(move || {
                     let stream = stream.unwrap();
                     let ip = stream.peer_addr().unwrap().to_string();
-                    println!("Connection from {}", ip);
+                    log::info(format!("Connection from {}", ip).as_str());
                     let mut websocket = accept(stream).unwrap();
                     loop {
                         let msg = websocket.read_message().unwrap();
-                        let mut reg_memory = reg_memory.lock().unwrap();
                         match msg {
                             Message::Close(_) => {
                                 let message = Message::Close(None);
                                 websocket.write_message(message).unwrap_or_default();
-                                println!("Client {} disconnected", ip);
+                                log::info(format!("Client {} disconnected", ip).as_str());
                                 return;
                             }
                             Message::Ping(ping) => {
                                 let message = Message::Pong(ping);
                                 websocket.write_message(message).unwrap_or_default();
                             }
-                            Message::Text(req_data) => {
-                                let req_data = LSimCore::parse_request_str(req_data);
-                                let mut ret_data = RegTransferData::new();
-                                ret_data.status = "FAIL".to_owned();
-                                match req_data {
+                            Message::Text(request) => {
+                                let mut reg_memory = reg_memory.lock().unwrap();
+                                let request = LSimCore::parse_request_str(request);
+                                let mut response = RegTransferData::new();
+                                response.status = "FAIL".to_owned();
+                                match request {
                                     Result::Ok(req_data) => {
-                                        ret_data.command = req_data.command.clone();
-                                        ret_data.key = req_data.key.clone();
+                                        response.command = req_data.command.clone();
+                                        response.key = req_data.key.clone();
                                         if req_data.command == "getreg".to_owned() || req_data.command == "setreg".to_owned() {
                                             let reg = reg_memory.get(req_data.key.clone());
                                             match reg {
                                                 Result::Ok(reg) => {
-                                                    ret_data.value = req_data.value.clone();
+                                                    response.value = req_data.value.clone();
                                                     if req_data.command == "getreg".to_owned() {
-                                                        ret_data.value = reg.read_to_str();
-                                                        ret_data.status = "SUCC".to_owned();
+                                                        response.value = reg.read_to_str();
+                                                        response.status = "SUCC".to_owned();
                                                     } else {
                                                         let old_input = reg.clone();
                                                         reg.write_from_str(req_data.value);
@@ -122,34 +124,36 @@ impl LSimCore {
                                                                 }
                                                             }
                                                         }
-                                                        ret_data.status = "SUCC".to_owned();
+                                                        response.status = "SUCC".to_owned();
                                                     }
-                                                    let resp = Message::Text(LSimCore::pack_request_str(ret_data));
-                                                    websocket.write_message(resp).unwrap_or_default();
                                                 },
                                                 Result::Err(err) => {
-                                                    ret_data.value = err;
-                                                    let resp = Message::Text(LSimCore::pack_request_str(ret_data));
-                                                    websocket.write_message(resp).unwrap_or_default();
-                                                    //println!("req err: {}", err);
+                                                    //log::error(err.clone().as_str());
+                                                    response.value = err;
                                                 }
                                             }
+                                        } else if req_data.command == "reset".to_owned() {
+                                            log::info("Resetted registers.");
+                                            reg_memory.reset();
+                                            response.value = "Reset done".to_owned();
+                                            response.status = "SUCC".to_owned();
+                                        } else if req_data.command == "terminate".to_owned() {
+                                            log::info("Simpi Broker terminated.");
+                                            //std::process::exit(0);
                                         } else {
-                                            ret_data.value = "Unknown action".to_owned();
-                                            let resp = Message::Text(LSimCore::pack_request_str(ret_data));
-                                            websocket.write_message(resp).unwrap_or_default();
+                                            response.value = "Unknown action".to_owned();
                                         }
                                     },
                                     Result::Err(err) => {
-                                        ret_data.value = err;
-                                        let resp = Message::Text(LSimCore::pack_request_str(ret_data));
-                                        websocket.write_message(resp).unwrap_or_default();
-                                        //println!("req err: {}", err);
+                                        //log::error(err.clone().as_str());
+                                        response.value = err;
                                     }
                                 }
+                                let resp = Message::Text(LSimCore::pack_request_str(response));
+                                websocket.write_message(resp).unwrap_or_default();
                             }
                             _ => {
-                                println!("??");
+                                log::warning("Unknwon Message type received.");
                             }
                         }
                     }
@@ -278,6 +282,10 @@ impl LSimCore {
     pub fn get_uptime_us(&self) -> u64 {
         return (time::Instant::now() - self.start_time_us).as_micros() as u64;
     }
+
+    const LL_INFO: u8 = 1;
+    const LL_WARNING: u8 = 2;
+    const LL_ERROR: u8 = 3;
 }
 
 pub struct RegTransferData {

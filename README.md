@@ -23,10 +23,12 @@ on your machine:
   * git
   * make
   * Library pthread
+  * Rust 1.40.0+
 * Windows:
   * Visual Studio C++ Compiler
   * Git (you can also dowload the zip of this repo and unpack it, if you do
     not want to install git on Windows)
+  * Rust 1.40.0+
 
 ## Installation
 
@@ -67,9 +69,10 @@ The broker then automatically opens `127.0.0.1:32000` in your default browser.
 ## Compiling Programs
 
 ### GNU/Linux
-Use the library flag `-lwiringPiSim` of gcc to compile your wiringPi program.
+Use the library flag `-lwpisim` of gcc to compile your wiringPi program.
 When running the compiled program, it willl try to communicate with the SimPi
-Broker. If this fails, an error message will be outputted.
+Client in the browser. Tip: run your program with `WPISIM_LOG=1 ./<prog-name>`
+to see event logs.
 
 ### Windows
 (todo: create windows compilation script)

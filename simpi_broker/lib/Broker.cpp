@@ -79,12 +79,12 @@ int Broker::get_broker_status() {
 }
 
 std::string Broker::_action(std::string cmd) {
-    std::string op = "op:action\n";
+    std::string op = ">action:";
     if (cmd == "terminate") {
         __svr.stop();
-        return ">SUCC;terminate;Exiting...\n";
+        return op + "SUCC/terminate=Exiting...\n";
     }
-    return op + ">FAIL~UNKACT;" + cmd + ";Invalid action name.\n";
+    return op + "FAIL~UNKACT/" + cmd + "=Invalid action name.\n";
 }
 
 std::string Broker::__get_app_data_dir() {
