@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -Wall -std=c++17 -lstdc++fs -lpthread
 
 SRC = src/main.cpp lib/Broker.cpp
-HEADERS = lib/httplib.h ../simpi_wiringpi/lib/gpioregs.h lib/Broker.hpp
+HEADERS = lib/httplib.h lib/Broker.hpp
 OUT = out/simpi_broker
 
 default: help
