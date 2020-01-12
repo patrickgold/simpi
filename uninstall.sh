@@ -10,7 +10,8 @@ simpi_uninstall () {
     echo Delete Program Files Simpi folder
     rm -rf "$prog_files_dir"
     rm "/usr/include/wiringPi.h"
-    rm "/usr/lib/x86_64-linux-gnu/libwiringPiSim.so"
+    rm "/usr/lib/x86_64-linux-gnu/libwpisim.d"
+    rm "/usr/lib/x86_64-linux-gnu/libwpisim.so"
     rm "$start_menu_dir/$app_id.desktop"
     # #1 - Done
     read -n 1 -s -r -p "Done! Press any key to continue..."
