@@ -1,4 +1,4 @@
-# SimPi
+# SimPi 0.5.0
 A tool for simulating wiringPi projects written for the Raspberry Pi on
 Windows and GNU/Linux.
 
