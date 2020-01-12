@@ -10,12 +10,15 @@ WPISIM_LIB = $(WPISIM_LIB_PATH)/libwpisim.so
 
 default: help
 
+$(WPISIM_LIB):
+	cd ../wpisim; cargo build
+
 # Generates the compiled project
 build: $(SRC) $(WPISIM_LIB) $(HEADERS)
 	$(CXX) $(SRC) -o $(OUT) -I../wpisim/ -L$(WPISIM_LIB_PATH) -lwpisim $(CXXFLAGS)
 
-run:
-	LD_LIBRARY_PATH="$(WPISIM_LIB_PATH)" ./$(OUT)
+run: ./$(OUT)
+	RUST_BACKTRACE=1 LD_LIBRARY_PATH="$(WPISIM_LIB_PATH)" ./$(OUT)
 
 clean: ./out/*
 	rm -rf ./out/*

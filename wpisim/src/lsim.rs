@@ -5,13 +5,13 @@
  * License: GPL 3.0 (see LICENSE file for details)
  */
 
-extern crate websocket;
+extern crate tungstenite;
 
 use std::{thread, time};
 use std::sync::{Mutex, Arc};
 use crate::gpioregs;
-use websocket::sync::Server;
-use websocket::OwnedMessage;
+use std::net::TcpListener;
+use tungstenite::{server::accept, Message};
 
 const INPUT: u8 =               0;
 const OUTPUT: u8 =              1;
@@ -48,43 +48,30 @@ impl LSimCore {
         let reg_memory = Arc::clone(&self.reg_memory);
         let isr_routines = Arc::clone(&self.isr_routines);
         thread::spawn(move || {
-            let server = Server::bind("127.0.0.1:32001").unwrap();
-            for request in server.filter_map(Result::ok) {
+            let server = TcpListener::bind("127.0.0.1:32001").unwrap();
+            for stream in server.incoming() {
                 let reg_memory = Arc::clone(&reg_memory);
                 let isr_routines = Arc::clone(&isr_routines);
                 thread::spawn(move || {
-                    if !request.protocols().contains(&"rust-websocket".to_string()) {
-                        request.reject().unwrap();
-                        return;
-                    }
-        
-                    let mut client = request.use_protocol("rust-websocket").accept().unwrap();
-        
-                    let ip = client.peer_addr().unwrap();
-        
+                    let stream = stream.unwrap();
+                    let ip = stream.peer_addr().unwrap().to_string();
                     println!("Connection from {}", ip);
-        
-                    let message = OwnedMessage::Text("Hello".to_string());
-                    client.send_message(&message).unwrap();
-        
-                    let (mut receiver, mut sender) = client.split().unwrap();
-        
-                    for message in receiver.incoming_messages() {
+                    let mut websocket = accept(stream).unwrap();
+                    loop {
+                        let msg = websocket.read_message().unwrap();
                         let mut reg_memory = reg_memory.lock().unwrap();
-                        let message = message.unwrap();
-        
-                        match message {
-                            OwnedMessage::Close(_) => {
-                                let message = OwnedMessage::Close(None);
-                                sender.send_message(&message).unwrap();
+                        match msg {
+                            Message::Close(_) => {
+                                let message = Message::Close(None);
+                                websocket.write_message(message).unwrap_or_default();
                                 println!("Client {} disconnected", ip);
                                 return;
                             }
-                            OwnedMessage::Ping(ping) => {
-                                let message = OwnedMessage::Pong(ping);
-                                sender.send_message(&message).unwrap();
+                            Message::Ping(ping) => {
+                                let message = Message::Pong(ping);
+                                websocket.write_message(message).unwrap_or_default();
                             }
-                            OwnedMessage::Text(req_data) => {
+                            Message::Text(req_data) => {
                                 let req_data = LSimCore::parse_request_str(req_data);
                                 let mut ret_data = RegTransferData::new();
                                 ret_data.status = "FAIL".to_owned();
@@ -135,29 +122,28 @@ impl LSimCore {
                                                                 }
                                                             }
                                                         }
-                                                        // CHECK INTERRUPT HERE
                                                         ret_data.status = "SUCC".to_owned();
                                                     }
-                                                    let resp = OwnedMessage::from(LSimCore::pack_request_str(ret_data));
-                                                    sender.send_message(&resp).unwrap();
+                                                    let resp = Message::Text(LSimCore::pack_request_str(ret_data));
+                                                    websocket.write_message(resp).unwrap_or_default();
                                                 },
                                                 Result::Err(err) => {
                                                     ret_data.value = err;
-                                                    let resp = OwnedMessage::from(LSimCore::pack_request_str(ret_data));
-                                                    sender.send_message(&resp).unwrap();
+                                                    let resp = Message::Text(LSimCore::pack_request_str(ret_data));
+                                                    websocket.write_message(resp).unwrap_or_default();
                                                     //println!("req err: {}", err);
                                                 }
                                             }
                                         } else {
                                             ret_data.value = "Unknown action".to_owned();
-                                            let resp = OwnedMessage::from(LSimCore::pack_request_str(ret_data));
-                                            sender.send_message(&resp).unwrap();
+                                            let resp = Message::Text(LSimCore::pack_request_str(ret_data));
+                                            websocket.write_message(resp).unwrap_or_default();
                                         }
                                     },
                                     Result::Err(err) => {
                                         ret_data.value = err;
-                                        let resp = OwnedMessage::from(LSimCore::pack_request_str(ret_data));
-                                        sender.send_message(&resp).unwrap();
+                                        let resp = Message::Text(LSimCore::pack_request_str(ret_data));
+                                        websocket.write_message(resp).unwrap_or_default();
                                         //println!("req err: {}", err);
                                     }
                                 }
@@ -315,4 +301,24 @@ impl RegTransferData {
 mod tests {
     use super::*;
 
+    #[test]
+    fn LSimCore__parse_request_str() {
+        let req = "command:status/key=value".to_owned();
+        let req_parsed = LSimCore::parse_request_str(req).unwrap();
+        assert_eq!(req_parsed.command, "command");
+        assert_eq!(req_parsed.status, "status");
+        assert_eq!(req_parsed.key, "key");
+        assert_eq!(req_parsed.value, "value");
+    }
+
+    #[test]
+    fn LSimCore__pack_request_str() {
+        let mut req = RegTransferData::new();
+        req.command = "command".to_owned();
+        req.status = "status".to_owned();
+        req.key = "key".to_owned();
+        req.value = "value".to_owned();
+        let req_packed = LSimCore::pack_request_str(req);
+        assert_eq!(req_packed, ">command:status/key=value".to_owned());
+    }
 }

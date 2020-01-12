@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 lazy_static = "1.4.0"
-websocket = "0.24.0"
+tungstenite = "0.9.2"
 
 [lib]
 name = "wpisim"
