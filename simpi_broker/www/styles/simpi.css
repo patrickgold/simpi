@@ -138,17 +138,12 @@ button:not([disabled]):active {
     cursor: default;
     margin-right: 16px;
 }
-.header .group .status-icon {
-    display: block;
-    height: 24px;
-    position: relative;
-    width: 24px;
-}
 
-#status-connectivity {
+.status-connectivity {
     position: relative;
+    width: 120px;
 }
-#status-connectivity .status {
+.status-connectivity .status {
     cursor: default;
     display: flex;
     flex-direction: row;
@@ -163,25 +158,25 @@ button:not([disabled]):active {
     user-select: none;
     white-space: nowrap;
 }
-#status-connectivity .status.off {
+.status-connectivity .status.off {
     color: var(--red-400);
     opacity: 1;
     pointer-events: all;
 }
-#status-connectivity .status.on {
+.status-connectivity .status.on {
     color: var(--green-400);
     opacity: 0;
     pointer-events: none;
 }
-#status-connectivity[data-state="on"] .status.off {
+.status-connectivity[data-state="on"] .status.off {
     opacity: 0;
     pointer-events: none;
 }
-#status-connectivity[data-state="on"] .status.on {
+.status-connectivity[data-state="on"] .status.on {
     opacity: 1;
     pointer-events: all;
 }
-#status-connectivity .status i {
+.status-connectivity .status i {
     display: block;
     margin-right: 8px;
 }

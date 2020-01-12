@@ -21,14 +21,24 @@
         <div class="header">
             <div class="group">
                 <h1>SimPi</h1>
-                <div id="status-connectivity" data-state="off">
+                <div id="status-broker" class="status-connectivity" data-state="off">
                     <span class="status on" title="Connected to: SimPi Broker">
                         <i class="mat-ico md-18">signal_wifi_4_bar</i>
-                        <span>Connected</span>
+                        <span>Broker</span>
                     </span>
                     <span class="status off" title="No connection to: SimPi Broker">
                         <i class="mat-ico md-18">signal_wifi_off</i>
-                        <span>No connection</span>
+                        <span>Broker</span>
+                    </span>
+                </div>
+                <div id="status-wpisim" class="status-connectivity" data-state="off">
+                    <span class="status on" title="Connected to: WpiSim">
+                        <i class="mat-ico md-18">signal_wifi_4_bar</i>
+                        <span>WpiSim</span>
+                    </span>
+                    <span class="status off" title="No connection to: WpiSim">
+                        <i class="mat-ico md-18">signal_wifi_off</i>
+                        <span>WpiSim</span>
                     </span>
                 </div>
             </div>

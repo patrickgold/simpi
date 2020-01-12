@@ -1,7 +1,7 @@
 CXX = gcc
 CXXFLAGS = -Wall -std=c11 -lpthread
 
-SRC = test/blinky.c
+SRC = test/running-light.c
 HEADERS = test/wiringPi.h
 OUT = out/wpi_test
 

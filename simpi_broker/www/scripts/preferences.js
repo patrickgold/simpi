@@ -69,6 +69,7 @@ class Preferences {
                     }
                 }
                 this.isReady = true;
+                document.getElementById("status-broker").dataset.state = "on";
                 console.info("Successfully synced prefs from broker.");
             }).catch((err) => {
                 console.error(err);

@@ -52,7 +52,8 @@
             ctrlPlay: document.getElementById("ctrl-play"),
             ctrlReset: document.getElementById("ctrl-reset"),
             ctrlTerminate: document.getElementById("ctrl-terminate"),
-            statusConnectivity: document.getElementById("status-connectivity"),
+            statusBroker: document.getElementById("status-broker"),
+            statusWpiSim: document.getElementById("status-wpisim"),
         };
         this.arrBTN.forEach((v, i) => {
             this.ele[v].addEventListener("mousedown", (e) => {
@@ -85,10 +86,18 @@
         this.prefs.init().then(() => {
             this.play();
         });
-        window.ws = new WebSocket("ws://127.0.0.1:32001", "rust-websocket");
-        window.ws.onmessage = function (event) {
-            console.log("WS ANSWER: " + event.data);
-        }
+        this.setupWebSocket();
+    }
+
+    /**
+     * Sets up the websocket connection.
+     */
+    setupWebSocket() {
+        this.webSocket = new WebSocket("ws://127.0.0.1:32001", "rust-websocket");
+        this.webSocket.onmessage = (ev) => this.receiveData(ev);
+        this.webSocket.onclose = (ev) => {
+            this.ele.statusWpiSim.dataset.state = "off";
+        };
     }
 
     /**
@@ -134,7 +143,7 @@
             });
         }).catch((err) => {
             alert("Error: Couldn't reach SimPi Broker.");
-            that.ele.statusConnectivity.dataset.state = "off";
+            this.ele.statusBroker.dataset.state = "off";
         });
     }
 
@@ -155,39 +164,46 @@
     }
     
     /**
+     * Receives data from the web socket and sets the pins accordingly.
+     * @param {MessageEvent} event The event data of the web socket receiver.
+     */
+    receiveData(event) {
+        if (this.isPaused) { return; }
+        //console.log(event.data);
+        this.ele.statusWpiSim.dataset.state = "on";
+        let ret_data = SimPi.parseSimPiTransferData(event.data);
+        if (ret_data.command.toLowerCase() == "getreg") {
+            this.gpioregs.$[ret_data.key.toLowerCase()].fromString(ret_data.value);
+            if (ret_data.key.toLowerCase() == "output") {
+                this.ele["LED1"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED1"]));
+                this.ele["LED2"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED2"]));
+                this.ele["LED3"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED3"]));
+                this.ele["LED4"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED4"]));
+            }
+        }
+    }
+    
+    /**
      * Syncs all registers.
      */
     syncData() {
         if (this.isPaused) { return; }
-        let getURL = "/api/getreg/" +
-            this.gpioregs.$.output.key + ";" +
-            this.gpioregs.$.config.key + ";" +
-            this.gpioregs.$.pwm.key + ";" +
-            this.gpioregs.$.inten.key + ";" +
-            this.gpioregs.$.int0.key + ";" +
-            this.gpioregs.$.int1.key;
-        fetch(getURL).then((response) => {
-            response.text().then((data) => {
-                let parsedData = SimPi.parseSimPiTransferData(data);
-                parsedData.forEach((v, i) => {
-                    this.gpioregs.$[v.key].fromString(v.value);
-                    if (v.key == this.gpioregs.$.output.key) {
-                        this.ele["LED1"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED1"]));
-                        this.ele["LED2"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED2"]));
-                        this.ele["LED3"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED3"]));
-                        this.ele["LED4"].setAttribute("data-value", this.gpioregs.$.output.readPin(this.h2g["LED4"]));
-                    }
-                });
-            });
-            this.ele.statusConnectivity.dataset.state = "on";
-        }).catch((err) => {
-            this.ele.statusConnectivity.dataset.state = "off";
-        });
-        let setURL = "/api/setreg/" +
-            this.gpioregs.$.input.key + "=" + this.gpioregs.$.input.toString();
-        fetch(setURL).catch((err) => {
-            this.ele.statusConnectivity.dataset.state = "off";
-        });
+        if (this.webSocket.readyState == WebSocket.CLOSED) {
+            this.setupWebSocket();
+        }
+        if (this.webSocket.readyState != WebSocket.OPEN) {
+            return;
+        }
+        for (var v in this.gpioregs.$) {
+            if (this.gpioregs.$.hasOwnProperty(v)) {
+                let req_data = {
+                    command: v == "input" ? "setreg" : "getreg",
+                    key: this.gpioregs.$[v].key,
+                    value: this.gpioregs.$[v].toString(),
+                };
+                this.webSocket.send(SimPi.packSimPiTransferData(req_data));
+            }
+        }
     }
 
     /**
@@ -196,23 +212,50 @@
      * @returns {Object}
      */
     static parseSimPiTransferData(data) {
-        let ret = [];
-        data.split("\n").forEach((v, i) => {
-            if (v.startsWith(">")) {
-                v = v.slice(1);
-                let retObj = {};
-                v.split(";").forEach((v, i) => {
-                    if (i == 0) {
-                        retObj["status"] = v;
-                    } else if (i == 1) {
-                        retObj["key"] = v;
-                    } else if (i == 2) {
-                        retObj["value"] = v;
+        let ret = {};
+        data = data.slice(1);
+        data.split("/").forEach((v, i) => {
+            if (i == 0) {
+                v.split(":").forEach((vv, ii) => {
+                    if (ii == 0) {
+                        ret.command = vv;
+                    } else if (ii == 1) {
+                        ret.status = vv;
+                    } else {
+                        throw new Error("Invalid request syntax!");
                     }
                 });
-                ret.push(retObj);
+            } else if (i == 1) {
+                v.split("=").forEach((vv, ii) => {
+                    if (ii == 0) {
+                        ret.key = vv;
+                    } else if (ii == 1) {
+                        ret.value = vv;
+                    } else {
+                        throw new Error("Invalid request syntax!");
+                    }
+                });
+            } else {
+                throw new Error("Invalid request syntax!");
             }
         });
+        return ret;
+    }
+
+    /**
+     * Packs an given object to a request string.
+     * @param {Object} data The object to be packed.
+     * @returns {String}
+     */
+    static packSimPiTransferData(data) {
+        let ret = "";
+        ret += data.command;
+        ret += "/";
+        ret += data.key;
+        if (data.hasOwnProperty("value")) {
+            ret += "=";
+            ret += data.value;
+        }
         return ret;
     }
 }

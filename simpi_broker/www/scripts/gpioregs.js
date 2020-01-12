@@ -115,7 +115,6 @@ class GpioRegs {
             input:      new GpioReg("input",    0x00000000, 2, 27),
             output:     new GpioReg("output",   0x00000000, 2, 27),
             config:     new GpioReg("config",   0xFFFFFFFF, 2, 27),
-            pwm:        new GpioReg("pwm",      0x00000000, 2, 27),
             inten:      new GpioReg("inten",    0x00000000, 2, 27),
             int0:       new GpioReg("int0",     0x00000000, 2, 27),
             int1:       new GpioReg("int1",     0x00000000, 2, 27),

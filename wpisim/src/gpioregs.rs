@@ -8,7 +8,12 @@
 pub struct Reg {
     value: u32
 }
-
+impl Copy for Reg {}
+impl Clone for Reg {
+    fn clone(&self) -> Self {
+        return *self;
+    }
+}
 impl Reg {
     pub fn new() -> Reg {
         return Reg {

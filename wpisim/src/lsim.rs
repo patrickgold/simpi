@@ -93,7 +93,7 @@ impl LSimCore {
                                         ret_data.command = req_data.command.clone();
                                         ret_data.key = req_data.key.clone();
                                         if req_data.command == "getreg".to_owned() || req_data.command == "setreg".to_owned() {
-                                            let reg = reg_memory.get(req_data.key);
+                                            let reg = reg_memory.get(req_data.key.clone());
                                             match reg {
                                                 Result::Ok(reg) => {
                                                     ret_data.value = req_data.value.clone();
@@ -101,7 +101,40 @@ impl LSimCore {
                                                         ret_data.value = reg.read_to_str();
                                                         ret_data.status = "SUCC".to_owned();
                                                     } else {
+                                                        let old_input = reg.clone();
                                                         reg.write_from_str(req_data.value);
+                                                        if req_data.key.to_ascii_lowercase() == "input".to_owned() {
+                                                            let isr_routines = isr_routines.lock().unwrap();
+                                                            for i in MIN_PIN_NUM..=MAX_PIN_NUM {
+                                                                if reg_memory.inten.read_pin(i) == 1 {
+                                                                    let v_int0 = reg_memory.int0.read_pin(i) == 1;
+                                                                    let v_int1 = reg_memory.int1.read_pin(i) == 1;
+                                                                    let v_inp_old = old_input.read_pin(i) == 1;
+                                                                    let v_inp_new = reg_memory.input.read_pin(i) == 1;
+                                                                    // rising edge
+                                                                    if v_int1 && v_int0
+                                                                        && !v_inp_old
+                                                                        && v_inp_new
+                                                                        && isr_routines[i as usize].is_some() {
+                                                                        isr_routines[i as usize].unwrap()();
+                                                                    }
+                                                                    // falling edge
+                                                                    else if v_int1 && !v_int0
+                                                                        && v_inp_old
+                                                                        && !v_inp_new
+                                                                        && isr_routines[i as usize].is_some() {
+                                                                        isr_routines[i as usize].unwrap()();
+                                                                    }
+                                                                    // logical change
+                                                                    else if !v_int1 && v_int0
+                                                                        && (v_inp_old
+                                                                        ^ v_inp_new)
+                                                                        && isr_routines[i as usize].is_some() {
+                                                                        isr_routines[i as usize].unwrap()();
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
                                                         // CHECK INTERRUPT HERE
                                                         ret_data.status = "SUCC".to_owned();
                                                     }
