@@ -33,11 +33,12 @@ echo Create start menu entry...
 :: https://stackoverflow.com/a/30029955
 powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%_START_MENU_DIR%\%_APP_NAME%.lnk');$s.TargetPath='%_PROGRAM_FILES_DIR%\simpi_broker.exe';$s.WorkingDirectory='%_PROGRAM_FILES_DIR%';$s.IconLocation='%_PROGRAM_FILES_DIR%\www\media\app_icon.ico';$s.Save()" >nul 2>&1
 cd ..
-:: #2 - Setup wiringPi lib
-echo Building wiringPi lib...
-cd simpi_wiringpi
-call make.bat build-wiring-pi-sim >nul 2>&1
-xcopy "out\wiringPiSim.obj" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
+:: #2 - Setup wpisim lib
+echo Building wpisim lib...
+cd wpisim
+call cargo build --release >nul 2>&1
+xcopy "target\release\wpisim.dll" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
+xcopy "target\release\wpisim.dll.lib" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 cd ..
 :: #3 - Copy clenv.bat, LICENSE, README.md and uninstall.bat
 xcopy "clenv.bat" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
