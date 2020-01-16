@@ -1,0 +1,10 @@
+[package]
+name = "broker"
+version = "0.1.0"
+authors = ["Patrick Goldinger"]
+edition = "2018"
+
+[dependencies]
+iced = "0.1.0-beta"
+#iced = { git = "https://github.com/hecrj/iced", branch = "0.1.0" }
+utils = { path = "../utils" }
