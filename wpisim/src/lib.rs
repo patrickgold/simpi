@@ -8,10 +8,9 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod gpioregs;
 mod lsim;
-mod log;
 
+use utils::*;
 use std::sync::Mutex;
 
 lazy_static! {
