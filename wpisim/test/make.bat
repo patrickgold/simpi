@@ -2,12 +2,12 @@
 setlocal
 set IN_SRC_FILES="test\blinky.c"
 if "%~1"=="build" (
-    if exist "..\wpisim\target\debug\wpisim.dll.lib" (
+    if exist "..\target\debug\wpisim.dll.lib" (
         title Building executable
         echo Building executable...
-        call ..\clenv.bat /EHsc %IN_SRC_FILES% /I ..\wpisim /link ..\wpisim\target\debug\wpisim.dll.lib /out:out\wpi_test.exe
+        call clenv.bat /EHsc %IN_SRC_FILES% /I .. /link ..\target\debug\wpisim.dll.lib /out:out\wpi_test.exe
         move *.obj out\
-        xcopy "..\wpisim\target\debug\wpisim.dll" "out\" /Y >nul 2>&1
+        xcopy "..\target\debug\wpisim.dll" "out\" /Y >nul 2>&1
     ) else (
         echo Cannot build target
         echo  Reason: missing dll '..\wpisim\target\debug\wpisim.dll.lib'.
