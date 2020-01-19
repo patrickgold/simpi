@@ -5,6 +5,7 @@ authors = ["Patrick Goldinger"]
 edition = "2018"
 
 [dependencies]
-iced = "0.1.0-beta"
-#iced = { git = "https://github.com/hecrj/iced", branch = "0.1.0" }
+failure = "0.1.6"
+crossterm = "0.14.2"
+tui = { version = "0.8.0", default-features = false, features = ['crossterm'] }
 utils = { path = "../utils" }
