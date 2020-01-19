@@ -18,10 +18,13 @@ use shared_memory::*;
 static GLOBAL_LOCK_ID: usize = 0;
 
 pub fn init_shared_memory() -> Result<SharedMem, SharedMemError> {
+    // TODO: implement for Linux as well
     let appdata_path = std::env::var("APPDATA").unwrap() + "\\simpi";
-    let link_path = appdata_path + "\\simpi.link";
-    println!("Attempting to create/open custom gpioregs !");
-    let mut gpioregs = match SharedMem::create_linked(link_path.clone(), LockType::Mutex, 24) {
+    let link_path = appdata_path + "\\~simpi.link";
+    log::info("Attempting to create/open shared gpioregs mapping...");
+    let mut gpioregs = match SharedMem::create_linked(
+        link_path.clone(), LockType::Mutex, std::mem::size_of::<RegMemory>()
+    ) {
         // We created and own this mapping
         Ok(v) => v,
         // Link file already exists
@@ -30,18 +33,18 @@ pub fn init_shared_memory() -> Result<SharedMem, SharedMemError> {
         Err(e) => return Err(e),
     };
 
-    println!("Mapping info : {}", gpioregs);
+    log::info(format!("Mapping info : {}", gpioregs).as_ref());
 
     if gpioregs.num_locks() != 1 {
-        println!("Expected to only have 1 lock in shared mapping !");
+        log::error("Expected to only have 1 lock in shared mapping!");
         return Err(SharedMemError::InvalidHeader);
     } else {
         if gpioregs.is_owner() {
             let mut gpioregs = gpioregs.wlock::<RegMemory>(GLOBAL_LOCK_ID)?;
             gpioregs.reset();
-            println!("Yay we are owner!!");
+            log::info("This process is owner of the shared mapping.");
         } else {
-            println!("Somebody was faster than us:/");
+            log::info("This process is not owner of the shared mapping.");
         }
     }
     Ok(gpioregs)
