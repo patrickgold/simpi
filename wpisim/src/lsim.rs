@@ -5,15 +5,13 @@
  * License: GPL 3.0 (see LICENSE file for details)
  */
 
-extern crate tungstenite;
-
 use std::{thread, time};
 use std::sync::{Mutex, Arc};
-use std::net::TcpListener;
-use tungstenite::{server::accept, Message};
-use utils::log;
-use utils::gpioregs::*;
-use utils::shared_memory::*;
+use utils::{
+    gpioregs::*,
+    log,
+    shared_memory::*
+};
 
 const INPUT: u8 =               0;
 const OUTPUT: u8 =              1;
@@ -33,17 +31,16 @@ pub struct LSimCore {
     pub reg_memory: Result<SharedMem, SharedMemError>,
     pub start_time_us: time::Instant,
     pub isr_routines: Arc<Mutex<[Option<extern "C" fn()>; 32]>>,
-    //pub sync_thread_handle: Option<thread::JoinHandle<_>>,
     pub is_thread_valid: bool,
 }
-unsafe impl Send for LSimCore {}
+unsafe impl Send for LSimCore {} // needed for lazy_static
 impl LSimCore {
     pub fn new() -> LSimCore {
+        log::init("wpisim");
         return LSimCore {
             reg_memory: utils::init_shared_memory(),
             start_time_us: time::Instant::now(),
             isr_routines: Arc::new(Mutex::new([None; 32])),
-            //sync_thread_handle: None,
             is_thread_valid: false,
         }
     }
@@ -51,119 +48,6 @@ impl LSimCore {
     pub fn setup(&mut self) -> i32 {
         log::info("Init wpisim module...");
         self.start_time_us = time::Instant::now();
-        // let reg_memory = Arc::clone(&self.reg_memory);
-        // let isr_routines = Arc::clone(&self.isr_routines);
-        // thread::spawn(move || {
-        //     let server = TcpListener::bind("127.0.0.1:32001").unwrap();
-        //     for stream in server.incoming() {
-        //         let reg_memory = Arc::clone(&reg_memory);
-        //         let isr_routines = Arc::clone(&isr_routines);
-        //         thread::spawn(move || {
-        //             let stream = stream.unwrap();
-        //             let ip = stream.peer_addr().unwrap().to_string();
-        //             log::info(format!("Connection from {}", ip).as_str());
-        //             let mut websocket = accept(stream).unwrap();
-        //             loop {
-        //                 let msg = websocket.read_message().unwrap();
-        //                 match msg {
-        //                     Message::Close(_) => {
-        //                         let message = Message::Close(None);
-        //                         websocket.write_message(message).unwrap_or_default();
-        //                         log::info(format!("Client {} disconnected", ip).as_str());
-        //                         return;
-        //                     }
-        //                     Message::Ping(ping) => {
-        //                         let message = Message::Pong(ping);
-        //                         websocket.write_message(message).unwrap_or_default();
-        //                     }
-        //                     Message::Text(request) => {
-        //                         let mut reg_memory = reg_memory.lock().unwrap();
-        //                         let request = LSimCore::parse_request_str(request);
-        //                         let mut response = RegTransferData::new();
-        //                         response.status = "FAIL".to_owned();
-        //                         match request {
-        //                             Result::Ok(req_data) => {
-        //                                 response.command = req_data.command.clone();
-        //                                 response.key = req_data.key.clone();
-        //                                 if req_data.command == "getreg".to_owned() || req_data.command == "setreg".to_owned() {
-        //                                     let reg = reg_memory.get(req_data.key.clone());
-        //                                     match reg {
-        //                                         Result::Ok(reg) => {
-        //                                             response.value = req_data.value.clone();
-        //                                             if req_data.command == "getreg".to_owned() {
-        //                                                 response.value = reg.read_to_str();
-        //                                                 response.status = "SUCC".to_owned();
-        //                                             } else {
-        //                                                 let old_input = reg.clone();
-        //                                                 reg.write_from_str(req_data.value);
-        //                                                 if req_data.key.to_ascii_lowercase() == "input".to_owned() {
-        //                                                     let isr_routines = isr_routines.lock().unwrap();
-        //                                                     for i in MIN_PIN_NUM..=MAX_PIN_NUM {
-        //                                                         if reg_memory.inten.read_pin(i) == 1 {
-        //                                                             let v_int0 = reg_memory.int0.read_pin(i) == 1;
-        //                                                             let v_int1 = reg_memory.int1.read_pin(i) == 1;
-        //                                                             let v_inp_old = old_input.read_pin(i) == 1;
-        //                                                             let v_inp_new = reg_memory.input.read_pin(i) == 1;
-        //                                                             // rising edge
-        //                                                             if v_int1 && v_int0
-        //                                                                 && !v_inp_old
-        //                                                                 && v_inp_new
-        //                                                                 && isr_routines[i as usize].is_some() {
-        //                                                                 isr_routines[i as usize].unwrap()();
-        //                                                             }
-        //                                                             // falling edge
-        //                                                             else if v_int1 && !v_int0
-        //                                                                 && v_inp_old
-        //                                                                 && !v_inp_new
-        //                                                                 && isr_routines[i as usize].is_some() {
-        //                                                                 isr_routines[i as usize].unwrap()();
-        //                                                             }
-        //                                                             // logical change
-        //                                                             else if !v_int1 && v_int0
-        //                                                                 && (v_inp_old
-        //                                                                 ^ v_inp_new)
-        //                                                                 && isr_routines[i as usize].is_some() {
-        //                                                                 isr_routines[i as usize].unwrap()();
-        //                                                             }
-        //                                                         }
-        //                                                     }
-        //                                                 }
-        //                                                 response.status = "SUCC".to_owned();
-        //                                             }
-        //                                         },
-        //                                         Result::Err(err) => {
-        //                                             //log::error(err.clone().as_str());
-        //                                             response.value = err;
-        //                                         }
-        //                                     }
-        //                                 } else if req_data.command == "reset".to_owned() {
-        //                                     log::info("Resetted registers.");
-        //                                     reg_memory.reset();
-        //                                     response.value = "Reset done".to_owned();
-        //                                     response.status = "SUCC".to_owned();
-        //                                 } else if req_data.command == "terminate".to_owned() {
-        //                                     log::info("Simpi Broker terminated.");
-        //                                     //std::process::exit(0);
-        //                                 } else {
-        //                                     response.value = "Unknown action".to_owned();
-        //                                 }
-        //                             },
-        //                             Result::Err(err) => {
-        //                                 //log::error(err.clone().as_str());
-        //                                 response.value = err;
-        //                             }
-        //                         }
-        //                         let resp = Message::Text(LSimCore::pack_request_str(response));
-        //                         websocket.write_message(resp).unwrap_or_default();
-        //                     }
-        //                     _ => {
-        //                         log::warning("Unknwon Message type received.");
-        //                     }
-        //                 }
-        //             }
-        //         });
-        //     }
-        // });
         return 0;
     }
 

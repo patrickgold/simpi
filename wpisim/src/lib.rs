@@ -10,7 +10,6 @@ extern crate lazy_static;
 
 mod lsim;
 
-use utils::*;
 use std::sync::Mutex;
 
 lazy_static! {
