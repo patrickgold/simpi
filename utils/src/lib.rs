@@ -20,7 +20,8 @@ static GLOBAL_LOCK_ID: usize = 0;
 pub fn init_shared_memory() -> Result<SharedMem, SharedMemError> {
     // TODO: implement for Linux as well
     let appdata_path = std::env::var("APPDATA").unwrap() + "\\simpi";
-    let link_path = appdata_path + "\\~simpi.link";
+    //let appdata_path = std::env::var("HOME").unwrap() + "/.simpi";
+    let link_path = appdata_path + "/~simpi.link";
     log::info("Attempting to create/open shared gpioregs mapping...");
     let mut gpioregs = match SharedMem::create_linked(
         link_path.clone(), LockType::Mutex, std::mem::size_of::<RegMemory>()
@@ -28,9 +29,17 @@ pub fn init_shared_memory() -> Result<SharedMem, SharedMemError> {
         // We created and own this mapping
         Ok(v) => v,
         // Link file already exists
-        Err(SharedMemError::LinkExists) =>
-            SharedMem::open_linked(link_path.clone())?,
-        Err(e) => return Err(e),
+        Err(SharedMemError::LinkExists) => {
+            match SharedMem::open_linked(link_path.clone()) {
+                Ok(v) => v,
+                Err(SharedMemError::MapOpenFailed(_)) => {
+                    std::fs::remove_file(link_path.clone()).unwrap_or(());
+                    return init_shared_memory();
+                },
+                Err(err) => return Err(err),
+            }
+        },
+        Err(err) => return Err(err),
     };
 
     log::info(format!("Mapping info : {}", gpioregs).as_ref());

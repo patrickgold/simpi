@@ -7,7 +7,6 @@
  */
 
 #![allow(dead_code)]
-#![allow(unused_imports)]
 
 use std::{
     io::{stdout, Write},
@@ -16,13 +15,13 @@ use std::{
     time::Duration,
 };
 use utils::{
-    gpioregs::RegMemory,
+    gpioregs::{Reg, RegMemory},
     shared_memory::*
 };
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
-use tui::layout::{Alignment, Constraint, Direction, Layout};
-use tui::style::{Color, Style};
+use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -46,12 +45,27 @@ struct Broker {
     tick_rate: u64,
 }
 
-fn reg_to_bin_str(reg: u32) -> String {
-    let mut ret = String::new();
-    for i in 0..32 {
-        ret = (if (reg & (1 << i)) > 0 { " 1 " } else { " 0 " }).to_owned() + &ret;
+fn reg_to_styled(reg: &Reg, data: &mut Vec<Text>) {
+    for i in (0..32).rev() {
+        if reg.read_pin(i) > 0 {
+            data.push(Text::raw(" "));
+            data.push(Text::styled("1", Style::default().fg(Color::White).bg(Color::LightRed).modifier(Modifier::BOLD)));
+            data.push(Text::raw(" "));
+        } else {
+            data.push(Text::raw(" "));
+            data.push(Text::styled("0", Style::default().fg(Color::Gray)));
+            data.push(Text::raw(" "));
+        }
     }
-    return ret;
+    data.push(Text::raw("\n"));
+}
+
+fn get_body_margin(rect: Rect, size: u16) -> u16 {
+    if rect.width < 128 {
+        0
+    } else {
+        100 * ((rect.width - 128) / 2) / rect.width
+    }
 }
 
 pub fn main() -> Result<(), failure::Error> {
@@ -90,16 +104,22 @@ pub fn main() -> Result<(), failure::Error> {
 
     loop {
         terminal.draw(|mut f| {
+            let root_layout = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(get_body_margin(f.size(), 128)),
+                    Constraint::Length(128),
+                    Constraint::Percentage(get_body_margin(f.size(), 128)),
+                ].as_ref())
+                .split(f.size());
             let body_layout = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints(
-                    [
-                        Constraint::Length(3),
-                        Constraint::Length(9),
-                        Constraint::Length(3),
-                    ].as_ref()
-                )
-                .split(f.size());
+                .constraints([
+                    Constraint::Length(3),
+                    Constraint::Length(9),
+                    Constraint::Length(3),
+                ].as_ref())
+                .split(root_layout[1]);
             Block::default()
                 .title(" SimPi Broker ")
                 .borders(Borders::ALL)
@@ -108,13 +128,15 @@ pub fn main() -> Result<(), failure::Error> {
             let gpioregs_layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .margin(1)
-                .constraints(
-                    [
-                        Constraint::Length(10),
-                        Constraint::Min(1),
-                    ].as_ref()
-                )
+                .constraints([
+                    Constraint::Length(10),
+                    Constraint::Min(1),
+                ].as_ref())
                 .split(body_layout[1]);
+            Block::default()
+                .title(" GPIO Registers ")
+                .borders(Borders::ALL)
+                .render(&mut f, body_layout[1]);
             let gpioregs_names = [
                 Text::raw("\n"),
                 Text::raw("INPUT\n"),
@@ -124,48 +146,38 @@ pub fn main() -> Result<(), failure::Error> {
                 Text::raw("INT0\n"),
                 Text::raw("INT1\n"),
             ];
-            let gpioregs_data = match reg_memory.as_ref() {
-                Ok(v) => {
-                    let reg_memory = v.rlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
-                    [
-                        Text::styled(
-                            "31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n",
-                            Style::default().fg(Color::DarkGray)
-                        ),
-                        Text::raw(reg_to_bin_str(reg_memory.input.read()) + "\n"),
-                        Text::raw(reg_to_bin_str(reg_memory.output.read()) + "\n"),
-                        Text::raw(reg_to_bin_str(reg_memory.config.read()) + "\n"),
-                        Text::raw(reg_to_bin_str(reg_memory.inten.read()) + "\n"),
-                        Text::raw(reg_to_bin_str(reg_memory.int0.read()) + "\n"),
-                        Text::raw(reg_to_bin_str(reg_memory.int1.read()) + "\n"),
-                    ]
-                },
-                Err(err) => {
-                    [
-                        Text::raw(format!("{}", err)),
-                        Text::raw(""),
-                        Text::raw(""),
-                        Text::raw(""),
-                        Text::raw(""),
-                        Text::raw(""),
-                        Text::raw(""),
-                    ]
-                }
-            };
-            let gpioregs_block = Block::default()
-                .borders(Borders::NONE);
-            Block::default()
-                .title(" GPIO Registers ")
-                .borders(Borders::ALL)
-                .render(&mut f, body_layout[1]);
             Paragraph::new(gpioregs_names.iter())
-                .block(gpioregs_block.clone())
+                .block(Block::default())
                 .alignment(Alignment::Left)
                 .render(&mut f, gpioregs_layout[0]);
-            Paragraph::new(gpioregs_data.iter())
-                .block(gpioregs_block.clone())
-                .alignment(Alignment::Right)
-                .render(&mut f, gpioregs_layout[1]);
+            match reg_memory.as_ref() {
+                Ok(v) => {
+                    let mut data = vec![
+                        Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
+                    ];
+                    let reg_memory = v.rlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
+                    for reg in [
+                        reg_memory.input,
+                        reg_memory.output,
+                        reg_memory.config,
+                        reg_memory.inten,
+                        reg_memory.int0,
+                        reg_memory.int1,
+                    ].iter() {
+                        reg_to_styled(&reg, &mut data);
+                    }
+                    Paragraph::new(data.iter())
+                        .block(Block::default())
+                        .alignment(Alignment::Right)
+                        .render(&mut f, gpioregs_layout[1]);
+                },
+                Err(err) => {
+                    Paragraph::new([Text::raw(format!("{}", err))].iter())
+                        .block(Block::default().borders(Borders::TOP))
+                        .alignment(Alignment::Right)
+                        .render(&mut f, gpioregs_layout[1]);
+                }
+            };
         }).unwrap();
         match rx.recv()? {
             BrokerEvent::Input(event) => {
