@@ -30,6 +30,9 @@ use crossterm::{
 };
 use crossterm::terminal::LeaveAlternateScreen;
 
+mod hardware;
+use crate::hardware::*;
+
 const PROJECT_NAME: &str = "SimPi";
 const APP_NAME: &str = "SimPi Broker";
 const VERSION: &str = "0.1.0";
@@ -61,10 +64,10 @@ fn reg_to_styled(reg: &Reg, data: &mut Vec<Text>) {
 }
 
 fn get_body_margin(rect: Rect, size: u16) -> u16 {
-    if rect.width < 128 {
+    if rect.width < size {
         0
     } else {
-        100 * ((rect.width - 128) / 2) / rect.width
+        100 * ((rect.width - size) / 2) / rect.width
     }
 }
 
@@ -72,6 +75,8 @@ pub fn main() -> Result<(), failure::Error> {
     let broker = Broker {
         tick_rate: 50,
     };
+
+    let test = Board::default();
 
     enable_raw_mode()?;
 
