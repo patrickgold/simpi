@@ -1,0 +1,58 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://patrickgold.github.io/simpi/schemas/button.json",
+    "title": "SimPi Button Configuration",
+    "description": "Describes a button to be used on a board",
+    "type": "object",
+    "required": [ "type", "pin", "hotkey" ],
+    "properties": {
+        "type": {
+            "description": "The type of the object",
+            "const": "simpi/button",
+            "type": "string"
+        },
+        "pin": {
+            "description": "The GPIO pin number of the button",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 31
+        },
+        "name": {
+            "description": "The name of the button",
+            "type": "string",
+            "default": "BTN $n"
+        },
+        "hotkey": {
+            "description": "The hotkey used to press the button",
+            "type": "string"
+        },
+        "colorOff": {
+            "description": "The color of the button when inactive",
+            "type": "string",
+            "default": "black"
+        },
+        "colorOn": {
+            "description": "The color of the button when active",
+            "type": "string",
+            "default": "yellow"
+        },
+        "position": {
+            "description": "The position of the button on the board",
+            "type": "object",
+            "properties": {
+                "x": {
+                    "description": "The x-value of the button position board",
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0
+                },
+                "y": {
+                    "description": "The y-value of the button position board",
+                    "type": "number",
+                    "minimum": 0,
+                    "default": 0
+                }
+            }
+        }
+    }
+}

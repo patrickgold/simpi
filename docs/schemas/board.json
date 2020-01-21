@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://patrickgold.github.io/simpi/schemas/board.json",
+    "title": "SimPi Board Configuration",
+    "description": "Describes a board to be used in the Simpi Broker",
+    "type": "object",
+    "required": [ "type", "name", "hardware" ],
+    "properties": {
+        "type": {
+            "description": "The type of the object",
+            "const": "simpi/broker",
+            "type": "string"
+        },
+        "name": {
+            "description": "The name of the board",
+            "type": "string"
+        },
+        "backgroundColor": {
+            "description": "The background color of the board",
+            "type": "string",
+            "default": "green"
+        },
+        "foregroundColor": {
+            "description": "The foreground color (text, borders, etc...) of the board",
+            "type": "string",
+            "default": "white"
+        },
+        "size": {
+            "description": "The dimensions of the board",
+            "type": "object",
+            "properties": {
+                "width": {
+                    "description": "The width of the board",
+                    "type": "number",
+                    "minimum": 1,
+                    "default": 64
+                },
+                "height": {
+                    "description": "The height of the board",
+                    "type": "number",
+                    "minimum": 1,
+                    "default": 32
+                }
+            }
+        },
+        "hardware": {
+            "description": "the hardware whcih is sitting on the board",
+            "type": "array",
+            "items": {
+                "anyOf": [
+                    { "$ref": "https://patrickgold.github.io/simpi/schemas/led.json" },
+                    { "$ref": "https://patrickgold.github.io/simpi/schemas/button.json" }
+                ]
+            }    
+        }
+    }
+}
