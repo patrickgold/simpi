@@ -14,27 +14,56 @@ pub mod log;
 
 use gpioregs::*;
 use shared_memory::*;
+use std::path::Path;
 
 static GLOBAL_LOCK_ID: usize = 0;
 
 pub fn init_shared_memory() -> Result<SharedMem, SharedMemError> {
-    // TODO: implement for Linux as well
-    let appdata_path = std::env::var("APPDATA").unwrap() + "\\simpi";
-    //let appdata_path = std::env::var("HOME").unwrap() + "/.simpi";
-    let link_path = appdata_path + "/~simpi.link";
+    _init_shared_memory(0)
+}
+
+fn _init_shared_memory(n: usize) -> Result<SharedMem, SharedMemError> {
+    let sh_path: String;
+    let win32_appdata = std::env::var("APPDATA").unwrap_or("#".to_owned());
+    let linux_appdata = std::env::var("HOME").unwrap_or("#".to_owned());
+    if Path::new(&win32_appdata).exists() {
+        let simpi_dir = win32_appdata + "\\simpi";
+        if !Path::new(&simpi_dir).exists() {
+            match std::fs::create_dir(simpi_dir.clone()) {
+                Ok(_) => {},
+                Err(_) => return Err(SharedMemError::LinkDoesNotExist)
+            }
+        }
+        sh_path = simpi_dir + "\\~simpi.link";
+    } else if Path::new(&linux_appdata).exists() {
+        let simpi_dir = linux_appdata + "/simpi";
+        if !Path::new(&simpi_dir).exists() {
+            match std::fs::create_dir(simpi_dir.clone()) {
+                Ok(_) => {},
+                Err(_) => return Err(SharedMemError::LinkDoesNotExist)
+            }
+        }
+        sh_path = simpi_dir + "/~simpi.link";
+    } else {
+        return Err(SharedMemError::LinkDoesNotExist);
+    }
     log::info("Attempting to create/open shared gpioregs mapping...");
     let mut gpioregs = match SharedMem::create_linked(
-        link_path.clone(), LockType::Mutex, std::mem::size_of::<RegMemory>()
+        sh_path.clone(), LockType::Mutex, std::mem::size_of::<RegMemory>()
     ) {
         // We created and own this mapping
         Ok(v) => v,
         // Link file already exists
         Err(SharedMemError::LinkExists) => {
-            match SharedMem::open_linked(link_path.clone()) {
+            match SharedMem::open_linked(sh_path.clone()) {
                 Ok(v) => v,
-                Err(SharedMemError::MapOpenFailed(_)) => {
-                    std::fs::remove_file(link_path.clone()).unwrap_or(());
-                    return init_shared_memory();
+                Err(SharedMemError::MapOpenFailed(err)) => {
+                    if n == 0 {
+                        std::fs::remove_file(sh_path.clone()).unwrap_or(());
+                        return _init_shared_memory(n + 1);
+                    } else {
+                        return Err(SharedMemError::MapOpenFailed(err));
+                    }
                 },
                 Err(err) => return Err(err),
             }
