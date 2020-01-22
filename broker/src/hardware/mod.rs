@@ -15,6 +15,7 @@ pub use button::Button;
 pub use led::Led;
 pub use part::Part;
 
+use tui::layout::Rect;
 use tui::style::Color;
 
 fn helper_str_to_color(c: String) -> Result<Color, ()> {
@@ -38,4 +39,19 @@ fn helper_str_to_color(c: String) -> Result<Color, ()> {
         "white"         => Color::White,
         _ => return Err(()),
     })
+}
+
+fn helper_is_rect_in_range(parent: Rect, child: Rect) -> bool {
+    let p_x_min = parent.x;
+    let p_x_max = parent.x + parent.width;
+    let p_y_min = parent.y;
+    let p_y_max = parent.y + parent.height;
+    let c_x_min = child.x;
+    let c_x_max = child.x + child.width;
+    let c_y_min = child.y;
+    let c_y_max = child.y + child.height;
+    return c_x_min > p_x_min
+        && c_y_min > p_y_min
+        && c_x_max < p_x_max
+        && c_y_max < p_y_max;
 }

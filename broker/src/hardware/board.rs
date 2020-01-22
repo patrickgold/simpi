@@ -149,16 +149,13 @@ impl Board {
     pub fn render(
         &self, f: &mut Frame<'_, CrosstermBackend<std::io::Stdout>>, area: Rect
     ) {
-        let board_area: Rect;
-        if area.width >= self.width && area.height >= self.height {
-            board_area = Rect {
-                width: self.width,
-                height: self.height,
-                ..area
-            }
-        } else {
-            board_area = area;
-        }
+        let w = if area.width >= self.width { self.width } else { area.width };
+        let h = if area.height >= self.height { self.height } else { area.height };
+        let board_area = Rect {
+            width: w,
+            height: h,
+            ..area
+        };
         Block::default()
             .title(self.name.as_ref())
             .title_style(Style::default().fg(self.foreground_color))

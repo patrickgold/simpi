@@ -9,8 +9,8 @@ use super::board::Board;
 use serde_json::{Value as SerdeValue};
 use std::io::{Error, ErrorKind};
 use tui::backend::CrosstermBackend;
-use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Modifier, Style};
+use tui::layout::{Rect};
+use tui::style::{Color, Style};
 use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use tui::Frame;
 use utils::gpioregs::RegMemory;
@@ -133,6 +133,9 @@ impl Led {
             width: 9,
             height: 2,
         };
+        if !super::helper_is_rect_in_range(area, led_area) {
+            return;
+        }
         let led_content = [
             Text::styled("  ", Style::default().bg(
                 if self.state { self.color_on } else { self.color_off }

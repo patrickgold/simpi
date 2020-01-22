@@ -9,8 +9,8 @@ use super::board::Board;
 use serde_json::{Value as SerdeValue};
 use std::io::{Error, ErrorKind};
 use tui::backend::CrosstermBackend;
-use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use tui::style::{Color, Modifier, Style};
+use tui::layout::{Rect};
+use tui::style::{Color, Style};
 use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use tui::Frame;
 use utils::gpioregs::RegMemory;
@@ -137,16 +137,19 @@ impl Button {
         let button_area = Rect {
             x: area.x + self.pos_x + 1,
             y: area.y + self.pos_y + 1,
-            width: 12,
-            height: 3,
+            width: 13,
+            height: 2,
         };
+        if !super::helper_is_rect_in_range(area, button_area) {
+            return;
+        }
         let button_content = [
             Text::styled("  ", Style::default().bg(
                 if self.state { self.color_on } else { self.color_off }
             )),
             Text::raw(" "),
             Text::styled(
-                ((self.name.clone() + "\n   [") + 
+                ((self.name.clone() + " [") + 
                     self.hotkey.clone().as_ref()) + "]", 
             Style::default()
                 .fg(board.foreground_color)
