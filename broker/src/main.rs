@@ -31,7 +31,6 @@ use crossterm::{
 use crossterm::terminal::LeaveAlternateScreen;
 
 mod hardware;
-use crate::hardware::*;
 
 const PROJECT_NAME: &str = "SimPi";
 const APP_NAME: &str = "SimPi Broker";
@@ -45,6 +44,7 @@ enum BrokerEvent<I> {
 }
 
 struct Broker {
+    board: hardware::Board,
     tick_rate: u64,
 }
 
@@ -72,11 +72,14 @@ fn get_body_margin(rect: Rect, size: u16) -> u16 {
 }
 
 pub fn main() -> Result<(), failure::Error> {
-    let broker = Broker {
+    let mut broker = Broker {
+        board: hardware::Board::default(),
         tick_rate: 50,
     };
 
-    let test = Board::default();
+    let mut btn = hardware::Button::default();
+    btn.pin = 22;
+    broker.board.hardware.push(hardware::Part::Button(btn));
 
     enable_raw_mode()?;
 
@@ -91,10 +94,12 @@ pub fn main() -> Result<(), failure::Error> {
     // Setup input handling
     let (tx, rx) = mpsc::channel();
 
+    let tick_rate = broker.tick_rate;
+
     thread::spawn(move || {
         loop {
             // poll for tick rate duration, if no events, sent tick event.
-            if event::poll(Duration::from_millis(broker.tick_rate)).unwrap() {
+            if event::poll(Duration::from_millis(tick_rate)).unwrap() {
                 if let Event::Key(key) = event::read().unwrap() {
                     tx.send(BrokerEvent::Input(key)).unwrap();
                 }
@@ -105,7 +110,7 @@ pub fn main() -> Result<(), failure::Error> {
 
     terminal.clear()?;
 
-    let reg_memory = utils::init_shared_memory();
+    let mut reg_memory = utils::init_shared_memory();
 
     loop {
         terminal.draw(|mut f| {
@@ -120,9 +125,10 @@ pub fn main() -> Result<(), failure::Error> {
             let body_layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([
-                    Constraint::Length(3),
-                    Constraint::Length(9),
-                    Constraint::Length(3),
+                    Constraint::Length(3),  // SimPi Header
+                    Constraint::Length(9),  // GPIO Regs
+                    Constraint::Length(32), // Board
+                    Constraint::Length(3),  // Footer
                 ].as_ref())
                 .split(root_layout[1]);
             Block::default()
@@ -155,12 +161,12 @@ pub fn main() -> Result<(), failure::Error> {
                 .block(Block::default())
                 .alignment(Alignment::Left)
                 .render(&mut f, gpioregs_layout[0]);
-            match reg_memory.as_ref() {
+            match reg_memory.as_mut() {
                 Ok(v) => {
                     let mut data = vec![
                         Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
                     ];
-                    let reg_memory = v.rlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
+                    let mut reg_memory = v.wlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
                     for reg in [
                         reg_memory.input,
                         reg_memory.output,
@@ -175,6 +181,9 @@ pub fn main() -> Result<(), failure::Error> {
                         .block(Block::default())
                         .alignment(Alignment::Right)
                         .render(&mut f, gpioregs_layout[1]);
+                    broker.board
+                        .sync(&mut reg_memory)
+                        .render(&mut f, body_layout[2]);
                 },
                 Err(err) => {
                     Paragraph::new([Text::raw(format!("{}", err))].iter())

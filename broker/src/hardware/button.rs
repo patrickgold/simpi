@@ -5,10 +5,12 @@
  * License: GPL 3.0 (see LICENSE file for details)
  */
 
+use super::board::Board;
 use utils::gpioregs::RegMemory;
 use tui::backend::CrosstermBackend;
-use tui::layout::{Rect};
+use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
+use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use tui::Frame;
 
 #[derive(Clone)]
@@ -39,17 +41,44 @@ impl Default for Button {
 }
 
 impl Button {
-    fn get(&self) -> bool {
+    pub fn get(&self) -> bool {
         self.state
     }
-    fn set(&mut self, state: bool) {
+    pub fn set(&mut self, state: bool) {
         self.state = state
     }
     pub fn sync(&mut self, reg_memory: &mut RegMemory) -> &mut Self {
         reg_memory.input.write_pin(self.pin, self.state as u8);
         self
     }
-    pub fn render<F>(&self, f: F, area: Rect)
-        where F: FnOnce(Frame<CrosstermBackend<dyn std::io::Write>>)
-    {}
+    pub fn render(
+        &self, f: &mut Frame<'_, CrosstermBackend<std::io::Stdout>>,
+        area: Rect, board: &Board
+    ) {
+        let button_area = Rect {
+            x: area.x + self.pos_x + 1,
+            y: area.y + self.pos_y + 1,
+            width: 12,
+            height: 3,
+        };
+        let button_content = [
+            Text::styled("  ", Style::default().bg(
+                if self.state { self.color_on } else { self.color_off }
+            )),
+            Text::raw(" "),
+            Text::styled(
+                ((self.name.clone() + "\n   [") + 
+                    self.hotkey.clone().as_ref()) + "]", 
+            Style::default()
+                .fg(board.foreground_color)
+                .bg(board.background_color)
+            ),
+        ];
+        Paragraph::new(button_content.iter())
+            .block(Block::default()
+                .borders(Borders::NONE)
+            )
+            .style(Style::default().bg(board.background_color))
+            .render(f, button_area);
+    }
 }

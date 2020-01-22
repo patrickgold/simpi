@@ -8,8 +8,9 @@
 use super::part::Part;
 use utils::gpioregs::RegMemory;
 use tui::backend::CrosstermBackend;
-use tui::layout::{Rect};
+use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
+use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use tui::Frame;
 
 #[derive(Clone)]
@@ -29,7 +30,7 @@ impl Default for Board {
             background_color: Color::Green,
             foreground_color: Color::White,
             width: 64,
-            height: 32,
+            height: 24,
             hardware: vec![],
         }
     }
@@ -45,7 +46,31 @@ impl Board {
         }
         self
     }
-    pub fn render<F>(&self, f: F, area: Rect)
-        where F: FnOnce(Frame<CrosstermBackend<dyn std::io::Write>>)
-    {}
+    pub fn render(
+        &self, f: &mut Frame<'_, CrosstermBackend<std::io::Stdout>>, area: Rect
+    ) {
+        let board_area: Rect;
+        if area.width >= self.width && area.height >= self.height {
+            board_area = Rect {
+                width: self.width,
+                height: self.height,
+                ..area
+            }
+        } else {
+            board_area = area;
+        }
+        Block::default()
+            .title(self.name.as_ref())
+            .title_style(Style::default().fg(self.foreground_color))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(self.foreground_color))
+            .style(Style::default().bg(self.background_color))
+            .render(f, board_area);
+        for part in self.hardware.iter() {
+            match part {
+                Part::Led(led) => { led.render(f, board_area, &self); },
+                Part::Button(button) => { button.render(f, board_area, &self); },
+            }
+        }
+    }
 }
