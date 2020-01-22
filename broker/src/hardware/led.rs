@@ -6,12 +6,14 @@
  */
 
 use super::board::Board;
-use utils::gpioregs::RegMemory;
+use serde_json::{Value as SerdeValue};
+use std::io::{Error, ErrorKind};
 use tui::backend::CrosstermBackend;
 use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use tui::Frame;
+use utils::gpioregs::RegMemory;
 
 #[derive(Clone)]
 pub struct Led {
@@ -39,6 +41,78 @@ impl Default for Led {
 }
 
 impl Led {
+    pub fn from_json(json: SerdeValue) -> Result<Self, Error> {
+        match json {
+            SerdeValue::Object(map) => {
+                let mut led = Self::default();
+                let mut is_valid = false;
+                for (k, v) in map.iter() {
+                    match k.as_ref() {
+                        "type" => {
+                            if v.is_string() {
+                                if v.as_str().unwrap() == "simpi/led" {
+                                    is_valid = true;
+                                }
+                            }
+                        },
+                        "name" => {
+                            if v.is_string() {
+                                led.name = v.as_str().unwrap().to_owned();
+                            }
+                        },
+                        "pin" => {
+                            if v.is_u64() {
+                                led.pin = v.as_u64().unwrap() as u8;
+                            }
+                        },
+                        "colorOff" => {
+                            if v.is_string() {
+                                let c = super::helper_str_to_color(v.as_str().unwrap().to_owned());
+                                if c.is_ok() {
+                                    led.color_off = c.unwrap();
+                                }
+                            }
+                        },
+                        "colorOn" => {
+                            if v.is_string() {
+                                let c = super::helper_str_to_color(v.as_str().unwrap().to_owned());
+                                if c.is_ok() {
+                                    led.color_on = c.unwrap();
+                                }
+                            }
+                        },
+                        "position" => {
+                            if v.is_object() {
+                                let s = v.as_object().unwrap();
+                                for (k, v) in s.iter() {
+                                    match k.as_ref() {
+                                        "x" => {
+                                            if v.is_u64() {
+                                                led.pos_x = v.as_u64().unwrap() as u16;
+                                            }
+                                        },
+                                        "y" => {
+                                            if v.is_u64() {
+                                                led.pos_y = v.as_u64().unwrap() as u16;
+                                            }
+                                        },
+                                        _ => {}
+                                    }
+                                }
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+                if is_valid {
+                    Ok(led)
+                } else {
+                    Err(Error::new(ErrorKind::InvalidData, "Input data is invalid!"))
+                }
+            },
+            _ => Err(Error::new(ErrorKind::InvalidInput, "Input must be map!"))
+        }
+    }
     pub fn get(&self) -> bool {
         self.state
     }

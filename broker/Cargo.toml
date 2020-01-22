@@ -7,5 +7,6 @@ edition = "2018"
 [dependencies]
 failure = "0.1.6"
 crossterm = "0.14.2"
+serde_json = "1.0.44"
 tui = { version = "0.8.0", default-features = false, features = ['crossterm'] }
 utils = { path = "../utils" }

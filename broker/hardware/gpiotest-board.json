@@ -47,7 +47,7 @@
         "hotkey": "s",
         "colorOff": "black",
         "colorOn": "yellow",
-        "position": { "x": 16, "y": 4 }
+        "position": { "x": 16, "y": 5 }
     }, {
         "type": "simpi/button",
         "pin": 17,
@@ -55,6 +55,6 @@
         "hotkey": "d",
         "colorOff": "black",
         "colorOn": "yellow",
-        "position": { "x": 16, "y": 6 }
+        "position": { "x": 16, "y": 8 }
     }]
 }

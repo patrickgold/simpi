@@ -14,6 +14,8 @@ use std::{
     thread,
     time::Duration,
 };
+use std::fs::File;
+use std::io::Read;
 use utils::{
     gpioregs::{Reg, RegMemory},
     shared_memory::*
@@ -72,14 +74,14 @@ fn get_body_margin(rect: Rect, size: u16) -> u16 {
 }
 
 pub fn main() -> Result<(), failure::Error> {
+    let mut file = File::open("hardware/gpiotest-board.json").unwrap();
+    let mut data = String::new();
+    file.read_to_string(&mut data).unwrap();
+    let data = serde_json::from_str(data.as_ref()).unwrap();
     let mut broker = Broker {
-        board: hardware::Board::default(),
+        board: hardware::Board::from_json(data).unwrap(),
         tick_rate: 50,
     };
-
-    let mut btn = hardware::Button::default();
-    btn.pin = 22;
-    broker.board.hardware.push(hardware::Part::Button(btn));
 
     enable_raw_mode()?;
 
