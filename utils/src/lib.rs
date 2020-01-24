@@ -18,11 +18,27 @@ use std::path::Path;
 
 static GLOBAL_LOCK_ID: usize = 0;
 
-pub fn init_shared_memory() -> Result<SharedMem, SharedMemError> {
+pub struct ShMem {
+    pub mem: SharedMem,
+}
+unsafe impl Send for ShMem {}
+impl ShMem {
+    pub fn new(mem: SharedMem) -> Self {
+        Self { mem }
+    }
+    pub fn rlock<'a>(res: &'a Result<ShMem, SharedMemError>) -> ReadLockGuard<'_, RegMemory> {
+        res.as_ref().unwrap().mem.rlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap()
+    }
+    pub fn wlock<'a>(res: &'a mut Result<ShMem, SharedMemError>) -> WriteLockGuard<'_, RegMemory> {
+        res.as_mut().unwrap().mem.wlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap()
+    }
+}
+
+pub fn init_shared_memory() -> Result<ShMem, SharedMemError> {
     _init_shared_memory(0)
 }
 
-fn _init_shared_memory(n: usize) -> Result<SharedMem, SharedMemError> {
+fn _init_shared_memory(n: usize) -> Result<ShMem, SharedMemError> {
     let sh_path: String;
     let win32_appdata = std::env::var("APPDATA").unwrap_or("#".to_owned());
     let linux_appdata = std::env::var("HOME").unwrap_or("#".to_owned());
@@ -85,5 +101,5 @@ fn _init_shared_memory(n: usize) -> Result<SharedMem, SharedMemError> {
             log::info("This process is not owner of the shared mapping.");
         }
     }
-    Ok(gpioregs)
+    Ok(ShMem::new(gpioregs))
 }

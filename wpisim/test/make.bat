@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set IN_SRC_FILES="test\blinky.c"
+set IN_SRC_FILES="test\running-light.c"
 if "%~1"=="build" (
     if exist "..\target\debug\wpisim.dll.lib" (
         title Building executable

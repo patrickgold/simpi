@@ -137,6 +137,19 @@ impl Board {
             _ => Err(Error::new(ErrorKind::InvalidInput, "Input must be map!"))
         }
     }
+    pub fn event_keypress(&mut self, c: char) -> &mut Self {
+        for part in self.hardware.iter_mut() {
+            match part {
+                Part::Button(button) => {
+                    if button.hotkey == c.to_string() {
+                        button.set(!button.get());
+                    }
+                },
+                _ => {},
+            }
+        }
+        self
+    }
     pub fn sync(&mut self, reg_memory: &mut RegMemory) -> &mut Self {
         for part in self.hardware.iter_mut() {
             match part {

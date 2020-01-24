@@ -168,7 +168,7 @@ pub fn main() -> Result<(), failure::Error> {
                     let mut data = vec![
                         Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
                     ];
-                    let mut reg_memory = v.wlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
+                    let mut reg_memory = v.mem.wlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
                     for reg in [
                         reg_memory.input,
                         reg_memory.output,
@@ -179,13 +179,13 @@ pub fn main() -> Result<(), failure::Error> {
                     ].iter() {
                         reg_to_styled(&reg, &mut data);
                     }
+                    broker.board.sync(&mut reg_memory);
+                    drop(reg_memory);
                     Paragraph::new(data.iter())
                         .block(Block::default())
                         .alignment(Alignment::Right)
                         .render(&mut f, gpioregs_layout[1]);
-                    broker.board
-                        .sync(&mut reg_memory)
-                        .render(&mut f, body_layout[2]);
+                    broker.board.render(&mut f, body_layout[2]);
                 },
                 Err(err) => {
                     Paragraph::new([Text::raw(format!("{}", err))].iter())
@@ -198,11 +198,14 @@ pub fn main() -> Result<(), failure::Error> {
         match rx.recv()? {
             BrokerEvent::Input(event) => {
                 match event.code {
-                    KeyCode::Char('q') => {
-                        disable_raw_mode()?;
-                        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-                        terminal.show_cursor()?;
-                        break;
+                    KeyCode::Char(inp) => {
+                        if inp == 'q' {
+                            disable_raw_mode()?;
+                            execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+                            terminal.show_cursor()?;
+                            break;
+                        }
+                        broker.board.event_keypress(inp);
                     },
                     _ => {}
                 }
