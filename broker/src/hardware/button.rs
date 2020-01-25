@@ -34,7 +34,7 @@ impl Default for Button {
             name: String::from("BTN $n"),
             hotkey: String::from(""),
             color_off: Color::Black,
-            color_on: Color::Yellow,
+            color_on: Color::LightYellow,
             pos_x: 0,
             pos_y: 0,
             state: false,

@@ -32,7 +32,7 @@ impl Default for Led {
             pin: 0,
             name: String::from("LED $n"),
             color_off: Color::Black,
-            color_on: Color::Red,
+            color_on: Color::LightRed,
             pos_x: 0,
             pos_y: 0,
             state: false,

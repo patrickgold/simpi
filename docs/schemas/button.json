@@ -34,7 +34,7 @@
         "colorOn": {
             "description": "The color of the button when active",
             "type": "string",
-            "default": "yellow"
+            "default": "lightyellow"
         },
         "position": {
             "description": "The position of the button on the board",

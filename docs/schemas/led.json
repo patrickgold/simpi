@@ -30,7 +30,7 @@
         "colorOn": {
             "description": "The color of the LED when active",
             "type": "string",
-            "default": "red"
+            "default": "lightred"
         },
         "position": {
             "description": "The position of the LED on the board",

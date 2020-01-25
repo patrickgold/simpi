@@ -9,28 +9,28 @@
         "pin": 18,
         "name": "LED1",
         "colorOff": "black",
-        "colorOn": "red",
+        "colorOn": "lightred",
         "position": { "x": 2, "y": 2 }
     }, {
         "type": "simpi/led",
         "pin": 23,
         "name": "LED2",
         "colorOff": "black",
-        "colorOn": "red",
+        "colorOn": "lightred",
         "position": { "x": 2, "y": 4 }
     }, {
         "type": "simpi/led",
         "pin": 24,
         "name": "LED3",
         "colorOff": "black",
-        "colorOn": "red",
+        "colorOn": "lightred",
         "position": { "x": 2, "y": 6 }
     }, {
         "type": "simpi/led",
         "pin": 25,
         "name": "LED4",
         "colorOff": "black",
-        "colorOn": "red",
+        "colorOn": "lightred",
         "position": { "x": 2, "y": 8 }
     }, {
         "type": "simpi/button",
@@ -38,7 +38,7 @@
         "name": "BTN1",
         "hotkey": "a",
         "colorOff": "black",
-        "colorOn": "yellow",
+        "colorOn": "lightyellow",
         "position": { "x": 16, "y": 2 }
     }, {
         "type": "simpi/button",
@@ -46,7 +46,7 @@
         "name": "BTN2",
         "hotkey": "s",
         "colorOff": "black",
-        "colorOn": "yellow",
+        "colorOn": "lightyellow",
         "position": { "x": 16, "y": 5 }
     }, {
         "type": "simpi/button",
@@ -54,7 +54,7 @@
         "name": "BTN3",
         "hotkey": "d",
         "colorOff": "black",
-        "colorOn": "yellow",
+        "colorOn": "lightyellow",
         "position": { "x": 16, "y": 8 }
     }]
 }

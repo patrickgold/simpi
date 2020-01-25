@@ -8,6 +8,11 @@
 
 #![allow(dead_code)]
 
+#[macro_use]
+extern crate clap;
+extern crate tui;
+
+use clap::{App, Arg};
 use std::{
     io::{stdout, Write},
     sync::mpsc,
@@ -18,7 +23,8 @@ use std::fs::File;
 use std::io::Read;
 use utils::{
     gpioregs::{Reg, RegMemory},
-    shared_memory::*
+    shared_memory::*,
+    ShMem
 };
 use tui::Terminal;
 use tui::backend::CrosstermBackend;
@@ -26,7 +32,7 @@ use tui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use tui::style::{Color, Modifier, Style};
 use tui::widgets::{Block, Borders, Paragraph, Text, Widget};
 use crossterm::{
-    event::{self, Event, KeyCode},
+    event::{self, Event, KeyCode, EnableMouseCapture, DisableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen},
 };
@@ -46,7 +52,7 @@ enum BrokerEvent<I> {
 }
 
 struct Broker {
-    board: hardware::Board,
+    boards: Vec<hardware::Board>,
     tick_rate: u64,
 }
 
@@ -74,19 +80,47 @@ fn get_body_margin(rect: Rect, size: u16) -> u16 {
 }
 
 pub fn main() -> Result<(), failure::Error> {
-    let mut file = File::open("hardware/gpiotest-board.json").unwrap();
-    let mut data = String::new();
-    file.read_to_string(&mut data).unwrap();
-    let data = serde_json::from_str(data.as_ref()).unwrap();
     let mut broker = Broker {
-        board: hardware::Board::from_json(data).unwrap(),
+        boards: vec![],
         tick_rate: 50,
     };
+
+    let matches = App::new("SimPi Broker")
+        .version(crate_version!())
+        .author("Patrick Goldinger <@>")
+        .about("Simulate the Raspberry Pi GPIO on a PC.")
+        .arg(Arg::with_name("board")
+            .short("b")
+            .long("board")
+            .value_name("BOARD")
+            .help("Specify board(s) to load on startup")
+            .min_values(1),
+        )
+        .arg(Arg::with_name("debug")
+            .short("d")
+            .help("Turn debugging information on [NYI]"),
+        )
+        .get_matches();
+    
+    if matches.is_present("board") {
+        let board_files: Vec<_> = matches.values_of("board").unwrap().collect();
+        for board in board_files.iter() {
+            let file = File::open(board);
+            if file.is_ok() {
+                let mut file = file.unwrap();
+                let mut data = String::new();
+                file.read_to_string(&mut data).unwrap();
+                let data = serde_json::from_str(data.as_ref()).unwrap();
+                broker.boards.push(hardware::Board::from_json(data).unwrap());
+            }
+        }
+    }
 
     enable_raw_mode()?;
 
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout, EnableMouseCapture)?;
 
     let backend = CrosstermBackend::new(stdout);
 
@@ -103,10 +137,10 @@ pub fn main() -> Result<(), failure::Error> {
             // poll for tick rate duration, if no events, sent tick event.
             if event::poll(Duration::from_millis(tick_rate)).unwrap() {
                 if let Event::Key(key) = event::read().unwrap() {
-                    tx.send(BrokerEvent::Input(key)).unwrap();
+                    tx.send(BrokerEvent::Input(key)).unwrap_or_default();
                 }
             }
-            tx.send(BrokerEvent::Tick).unwrap();
+            tx.send(BrokerEvent::Tick).unwrap_or_default();
         }
     });
 
@@ -133,9 +167,38 @@ pub fn main() -> Result<(), failure::Error> {
                     Constraint::Length(3),  // Footer
                 ].as_ref())
                 .split(root_layout[1]);
-            Block::default()
-                .title(" SimPi Broker ")
-                .borders(Borders::ALL)
+            let header_cmd_style = Style::default()
+                .fg(Color::Black)
+                .bg(Color::White);
+            let header_cmd_style_red = Style::default()
+                .fg(Color::White)
+                .bg(Color::LightRed);
+            let header_key_style = Style::default()
+                .fg(Color::White)
+                .bg(Color::Black);
+            let header_text = [
+                Text::raw(" "),
+                Text::styled("F1", header_key_style),
+                Text::styled("Help", header_cmd_style),
+                Text::raw(" "),
+                Text::styled("F7", header_key_style),
+                Text::styled("Preferences", header_cmd_style),
+                Text::raw(" "),
+                Text::styled("F8", header_key_style),
+                Text::styled("Pause/Play", header_cmd_style),
+                Text::raw(" "),
+                Text::styled("F9", header_key_style),
+                Text::styled("Reset", header_cmd_style_red),
+                Text::raw(" "),
+                Text::styled("F10", header_key_style),
+                Text::styled("Quit", header_cmd_style_red),
+            ];
+            Paragraph::new(header_text.iter())
+                .block(Block::default()
+                    .title(" SimPi Broker ")
+                    .borders(Borders::ALL)
+                )
+                .alignment(Alignment::Right)
                 .render(&mut f, body_layout[0]);
             
             let gpioregs_layout = Layout::default()
@@ -179,13 +242,17 @@ pub fn main() -> Result<(), failure::Error> {
                     ].iter() {
                         reg_to_styled(&reg, &mut data);
                     }
-                    broker.board.sync(&mut reg_memory);
+                    for board in broker.boards.iter_mut() {
+                        board.sync(&mut reg_memory);
+                    }
                     drop(reg_memory);
                     Paragraph::new(data.iter())
                         .block(Block::default())
                         .alignment(Alignment::Right)
                         .render(&mut f, gpioregs_layout[1]);
-                    broker.board.render(&mut f, body_layout[2]);
+                    for board in broker.boards.iter_mut() {
+                        board.render(&mut f, body_layout[2]);
+                    }
                 },
                 Err(err) => {
                     Paragraph::new([Text::raw(format!("{}", err))].iter())
@@ -194,18 +261,26 @@ pub fn main() -> Result<(), failure::Error> {
                         .render(&mut f, gpioregs_layout[1]);
                 }
             };
-        }).unwrap();
+        }).unwrap_or_default();
         match rx.recv()? {
             BrokerEvent::Input(event) => {
                 match event.code {
-                    KeyCode::Char(inp) => {
-                        if inp == 'q' {
+                    KeyCode::F(inp) => {
+                        if inp == 9 {
+                            let mut reg_memory = ShMem::wlock(&mut reg_memory);
+                            reg_memory.reset();
+                        } else if inp == 10 {
                             disable_raw_mode()?;
                             execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+                            execute!(terminal.backend_mut(), DisableMouseCapture)?;
                             terminal.show_cursor()?;
                             break;
                         }
-                        broker.board.event_keypress(inp);
+                    },
+                    KeyCode::Char(inp) => {
+                        for board in broker.boards.iter_mut() {
+                            board.event_keypress(inp);
+                        }
                     },
                     _ => {}
                 }
