@@ -12,11 +12,11 @@ simpi_install () {
     mkdir -p "$prog_files_dir"
     # #1 - Setup SimPi Broker
     echo "Building SimPi Broker..."
-    cd simpi_broker
-    make build
+    cd broker
+    cargo build --release
     echo "Copy files to program install location..."
-    cp -r "./www" "$prog_files_dir/www"
-    cp "./out/simpi_broker" "$prog_files_dir"
+    cp "./target/release/simpi_broker" "$prog_files_dir"
+    cp "./media/app_icon.ico" "$prog_files_dir"
     echo "Create start menu entry..."
     touch "$start_menu_dir/$app_id.desktop"
     echo "[Desktop Entry]"                              >> "$start_menu_dir/$app_id.desktop"
@@ -25,7 +25,7 @@ simpi_install () {
     echo "Path=$prog_files_dir"                         >> "$start_menu_dir/$app_id.desktop"
     echo "Terminal=true"                                >> "$start_menu_dir/$app_id.desktop"
     echo "Type=Application"                             >> "$start_menu_dir/$app_id.desktop"
-    echo "Icon=$prog_files_dir/www/media/app_icon.ico"  >> "$start_menu_dir/$app_id.desktop"
+    echo "Icon=$prog_files_dir/app_icon.ico"  >> "$start_menu_dir/$app_id.desktop"
     echo "Categories=Development;"                      >> "$start_menu_dir/$app_id.desktop"
     cd ..
     # #2 - Setup wiringPi lib

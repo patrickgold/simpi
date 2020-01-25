@@ -23,25 +23,25 @@ mkdir "%_PROGRAM_FILES_DIR%" >nul 2>&1
 mkdir "%_START_MENU_DIR%" >nul 2>&1
 :: #1 - Setup SimPi Broker
 echo Building SimPi Broker...
-cd simpi_broker
-call make.bat build >nul 2>&1
+cd broker
+call cargo build --release
 echo Copy files to program install location...
-xcopy "www" "%_PROGRAM_FILES_DIR%\www" /e /i /h /Y >nul 2>&1
-xcopy "out\simpi_broker.exe" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
+xcopy "target\release\simpi_broker.exe" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
+xcopy "media\app_icon.ico" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 echo Create start menu entry...
 :: Credit to 'rojo' for this solution of creating shortcuts on Windows:
 :: https://stackoverflow.com/a/30029955
-powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%_START_MENU_DIR%\%_APP_NAME%.lnk');$s.TargetPath='%_PROGRAM_FILES_DIR%\simpi_broker.exe';$s.WorkingDirectory='%_PROGRAM_FILES_DIR%';$s.IconLocation='%_PROGRAM_FILES_DIR%\www\media\app_icon.ico';$s.Save()" >nul 2>&1
+powershell "$s=(New-Object -COM WScript.Shell).CreateShortcut('%_START_MENU_DIR%\%_APP_NAME%.lnk');$s.TargetPath='%_PROGRAM_FILES_DIR%\simpi_broker.exe';$s.WorkingDirectory='%_PROGRAM_FILES_DIR%';$s.IconLocation='%_PROGRAM_FILES_DIR%\app_icon.ico';$s.Save()" >nul 2>&1
 cd ..
 :: #2 - Setup wpisim lib
 echo Building wpisim lib...
 cd wpisim
-call cargo build --release >nul 2>&1
+call cargo build --release
 xcopy "target\release\wpisim.dll" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "target\release\wpisim.dll.lib" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 cd ..
 :: #3 - Copy clenv.bat, LICENSE, README.md and uninstall.bat
-xcopy "clenv.bat" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
+xcopy "wpisim\test\clenv.bat" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "LICENSE" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "README.md" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "uninstall.bat" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1

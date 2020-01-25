@@ -1,5 +1,5 @@
 [package]
-name = "broker"
+name = "simpi_broker"
 version = "0.1.0"
 authors = ["Patrick Goldinger"]
 edition = "2018"

@@ -8,7 +8,7 @@ if %errorLevel% == 0 (
     echo        Right click 'uninstall.bat' and select 'Run as administrator' or use an elevated cmd session.
     exit /b
 )
-:: change directory to dir of install.bat, bc "Run as admin" sets path to sys32
+:: change directory to dir of uninstall.bat, bc "Run as admin" sets path to sys32
 cd /d "%~dp0"
 set _APP_ID=simpi
 set _APP_NAME=SimPi Broker
