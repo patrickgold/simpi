@@ -52,7 +52,7 @@ fn _init_shared_memory(n: usize) -> Result<ShMem, SharedMemError> {
         }
         sh_path = simpi_dir + "\\~simpi.link";
     } else if Path::new(&linux_appdata).exists() {
-        let simpi_dir = linux_appdata + "/simpi";
+        let simpi_dir = linux_appdata + "/.simpi";
         if !Path::new(&simpi_dir).exists() {
             match std::fs::create_dir(simpi_dir.clone()) {
                 Ok(_) => {},

@@ -181,19 +181,19 @@ pub fn main() -> Result<(), failure::Error> {
                 Text::styled("F1", header_key_style),
                 Text::styled("Help[NYI]", header_cmd_style),
                 Text::raw(" "),
-                Text::styled("F6", header_key_style),
+                Text::styled("F2", header_key_style),
                 Text::styled("Board Manager[NYI]", header_cmd_style),
                 Text::raw(" "),
-                Text::styled("F7", header_key_style),
+                Text::styled("F6", header_key_style),
                 Text::styled("Preferences[NYI]", header_cmd_style),
                 Text::raw(" "),
-                Text::styled("F8", header_key_style),
+                Text::styled("F7", header_key_style),
                 Text::styled("Pause/Play[NYI]", header_cmd_style),
                 Text::raw(" "),
-                Text::styled("F9", header_key_style),
+                Text::styled("F8", header_key_style),
                 Text::styled("Reset", header_cmd_style_red),
                 Text::raw(" "),
-                Text::styled("F10", header_key_style),
+                Text::styled("F9", header_key_style),
                 Text::styled("Quit", header_cmd_style_red),
             ];
             Paragraph::new(header_text.iter())
@@ -269,10 +269,10 @@ pub fn main() -> Result<(), failure::Error> {
             BrokerEvent::Input(event) => {
                 match event.code {
                     KeyCode::F(inp) => {
-                        if inp == 9 {
+                        if inp == 8 {
                             let mut reg_memory = ShMem::wlock(&mut reg_memory);
                             reg_memory.reset();
-                        } else if inp == 10 {
+                        } else if inp == 9 {
                             disable_raw_mode()?;
                             execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
                             execute!(terminal.backend_mut(), DisableMouseCapture)?;
