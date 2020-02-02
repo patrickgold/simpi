@@ -11,7 +11,7 @@ modified.
     Visual C++ installation
 2. Execute `cargo build` in the shell or cmd to build the library
     for your system
-3. Change dir: `cd ../wpisim-test`
+3. Change dir: `cd test`
 4. Locate the `make.bat` or `makefile` and change the `IN_SRC_FILES` or `SRC`
     env variable to the file you want to compile
 5. Execute `make build` in the shell or cmd to build the executable of your

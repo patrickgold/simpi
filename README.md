@@ -2,18 +2,24 @@
 A tool for simulating wiringPi projects written for the Raspberry Pi on
 Windows and GNU/Linux.
 
+![SimPi Broker Preview](docs/assets/media/simpi-broker-preview.gif)
+
 *NOTE: this project is currently in beta version. Features may not work as
 intended or may behave unexpectedly!*
-
-*NOTE: altough this project aims to support both Windows and GNU/Linux,
-currently the focus lies on GNU/Linux due to its easier and better support
-of used features in this project.*
 
 ## Features
 * Simulates the Raspberry Pi GPIO Register (currently of the 3B+ model)
 * Allows you to build and run programs written with the wringPi library
-* Supports most of the original library functions
-* Works on GNU/Linux and (with complications) Windows
+* Supports most of the original library functions (including interrupts)
+* Works on GNU/Linux and Windows
+* Lets you build your own board(s) and display it in the broker
+  * Supports LEDs and Buttons for now, see [schemas](docs/schemas/) for more
+    information on how to properly config a board
+
+## Planned Features
+* Proper board manager
+* Saving preferences
+* Custom themes
 
 ## Installation
 
@@ -61,7 +67,7 @@ If there is no shortcut, you can locate the executable in the following folder:
 
 **NOTE:** You should not start the broker in an embedded terminal (e.g. VSCode),
 as this emulators often do not implement an raw mode and/or an alternate
-screen, which causes the broker to render nothing and thus making the it
+screen, which causes the broker to render nothing and thus making it
 unusable.
 
 ## Compiling Programs

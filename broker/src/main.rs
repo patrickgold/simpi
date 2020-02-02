@@ -198,7 +198,7 @@ pub fn main() -> Result<(), failure::Error> {
             ];
             Paragraph::new(header_text.iter())
                 .block(Block::default()
-                    .title(" SimPi Broker ")
+                    .title(format!("{}{}{}", " SimPi Broker ", crate_version!(), " ").as_ref())
                     .borders(Borders::ALL)
                 )
                 .alignment(Alignment::Right)
