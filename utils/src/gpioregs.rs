@@ -12,7 +12,7 @@ pub struct Reg {
 impl Copy for Reg {}
 impl Clone for Reg {
     fn clone(&self) -> Self {
-        return *self;
+        return Reg::from(self.value);
     }
 }
 impl Reg {
@@ -99,6 +99,19 @@ pub struct RegMemory {
     pub int1: Reg,
 }
 
+impl Copy for RegMemory {}
+impl Clone for RegMemory {
+    fn clone(&self) -> Self {
+        RegMemory {
+            input:  self.input.clone(),
+            output: self.output.clone(),
+            config: self.config.clone(),
+            inten:  self.inten.clone(),
+            int0:   self.int0.clone(),
+            int1:   self.int1.clone(),
+        }
+    }
+}
 impl RegMemory {
     pub fn new() -> RegMemory {
         return RegMemory {

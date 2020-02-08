@@ -53,6 +53,9 @@ enum BrokerEvent<I> {
 
 struct Broker {
     boards: Vec<hardware::Board>,
+    is_paused: bool,
+    reg_memory: Result<ShMem, SharedMemError>,
+    reg_memory_snapshot: RegMemory,
     tick_rate: u64,
 }
 
@@ -80,11 +83,6 @@ fn get_body_margin(rect: Rect, size: u16) -> u16 {
 }
 
 pub fn main() -> Result<(), failure::Error> {
-    let mut broker = Broker {
-        boards: vec![],
-        tick_rate: 50,
-    };
-
     let matches = App::new("SimPi Broker")
         .version(crate_version!())
         .author("Patrick Goldinger <@>")
@@ -101,6 +99,14 @@ pub fn main() -> Result<(), failure::Error> {
             .help("Turn debugging information on [NYI]"),
         )
         .get_matches();
+    
+    let mut broker = Broker {
+        boards: vec![],
+        is_paused: false,
+        reg_memory: utils::init_shared_memory(),
+        reg_memory_snapshot: RegMemory::new(),
+        tick_rate: 50,
+    };
     
     if matches.is_present("board") {
         let board_files: Vec<_> = matches.values_of("board").unwrap().collect();
@@ -146,8 +152,6 @@ pub fn main() -> Result<(), failure::Error> {
 
     terminal.clear()?;
 
-    let mut reg_memory = utils::init_shared_memory();
-
     loop {
         terminal.draw(|mut f| {
             let root_layout = Layout::default()
@@ -188,7 +192,7 @@ pub fn main() -> Result<(), failure::Error> {
                 Text::styled("Preferences[NYI]", header_cmd_style),
                 Text::raw(" "),
                 Text::styled("F7", header_key_style),
-                Text::styled("Pause/Play[NYI]", header_cmd_style),
+                Text::styled(if broker.is_paused { "Play " } else { "Pause" }, header_cmd_style),
                 Text::raw(" "),
                 Text::styled("F8", header_key_style),
                 Text::styled("Reset", header_cmd_style_red),
@@ -229,12 +233,24 @@ pub fn main() -> Result<(), failure::Error> {
                 .block(Block::default())
                 .alignment(Alignment::Left)
                 .render(&mut f, gpioregs_layout[0]);
-            match reg_memory.as_mut() {
-                Ok(v) => {
-                    let mut data = vec![
-                        Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
-                    ];
-                    let mut reg_memory = v.mem.wlock::<RegMemory>(GLOBAL_LOCK_ID).unwrap();
+            if broker.reg_memory.is_ok() {
+                let mut data = vec![
+                    Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
+                ];
+                if broker.is_paused {
+                    let reg_memory = broker.reg_memory_snapshot;
+                    for reg in [
+                        reg_memory.input,
+                        reg_memory.output,
+                        reg_memory.config,
+                        reg_memory.inten,
+                        reg_memory.int0,
+                        reg_memory.int1,
+                    ].iter() {
+                        reg_to_styled(&reg, &mut data);
+                    }
+                } else {
+                    let mut reg_memory = ShMem::wlock(&mut broker.reg_memory);
                     for reg in [
                         reg_memory.input,
                         reg_memory.output,
@@ -248,29 +264,41 @@ pub fn main() -> Result<(), failure::Error> {
                     for board in broker.boards.iter_mut() {
                         board.sync(&mut reg_memory);
                     }
-                    drop(reg_memory);
-                    Paragraph::new(data.iter())
-                        .block(Block::default())
-                        .alignment(Alignment::Right)
-                        .render(&mut f, gpioregs_layout[1]);
-                    for board in broker.boards.iter_mut() {
-                        board.render(&mut f, body_layout[2]);
-                    }
-                },
-                Err(err) => {
-                    Paragraph::new([Text::raw(format!("{}", err))].iter())
-                        .block(Block::default().borders(Borders::TOP))
-                        .alignment(Alignment::Right)
-                        .render(&mut f, gpioregs_layout[1]);
                 }
+                Paragraph::new(data.iter())
+                    .block(Block::default())
+                    .alignment(Alignment::Right)
+                    .render(&mut f, gpioregs_layout[1]);
+                for board in broker.boards.iter_mut() {
+                    board.render(&mut f, body_layout[2]);
+                }
+            } else {
+                Paragraph::new([
+                    Text::raw(format!(
+                        "{}", broker.reg_memory.as_ref().err().unwrap()
+                    ))
+                ].iter())
+                    .block(Block::default().borders(Borders::TOP))
+                    .alignment(Alignment::Right)
+                    .render(&mut f, gpioregs_layout[1]);
             };
         }).unwrap_or_default();
+
+        // Event handling
         match rx.recv()? {
             BrokerEvent::Input(event) => {
                 match event.code {
                     KeyCode::F(inp) => {
-                        if inp == 8 {
-                            let mut reg_memory = ShMem::wlock(&mut reg_memory);
+                        if inp == 7 {
+                            if broker.is_paused {
+                                broker.is_paused = false;
+                            } else {
+                                broker.is_paused = true;
+                                let reg_memory = ShMem::rlock(&broker.reg_memory);
+                                broker.reg_memory_snapshot = reg_memory.clone();
+                            }
+                        } else if inp == 8 {
+                            let mut reg_memory = ShMem::wlock(&mut broker.reg_memory);
                             reg_memory.reset();
                         } else if inp == 9 {
                             disable_raw_mode()?;
