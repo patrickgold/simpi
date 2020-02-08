@@ -25,10 +25,7 @@ intended or may behave unexpectedly!*
 
 ### From Source (GNU/Linux)
 *Prerequisites:*
-* gcc/g++ compiler suite
-* git
-* make
-* Library pthread
+* gcc compiler
 * Rust 1.40.0+ (rustc + cargo)
 
 *Installation process:*
@@ -41,10 +38,8 @@ $ ./install.sh
 
 ### From Source (Windows)
 *Prerequisites:*
-* Windows 10 recommended
+* Latest Windows 10 recommended
 * Visual Studio C++ Compiler
-* Git (you can also dowload the zip of this repo and unpack it, if you do
-not want to install git on Windows)
 * Rust 1.40.0+ (rustc + cargo)
 
 *Installation process:*
