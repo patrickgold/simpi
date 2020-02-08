@@ -50,8 +50,15 @@ enum BrokerEvent<I> {
     Input(I),
     Tick,
 }
+enum BrokerPage {
+    GpioRegs,
+    Help,
+    BoardManager,
+    Preferences
+}
 
 struct Broker {
+    active_page: BrokerPage,
     boards: Vec<hardware::Board>,
     is_paused: bool,
     reg_memory: Result<ShMem, SharedMemError>,
@@ -101,6 +108,7 @@ pub fn main() -> Result<(), failure::Error> {
         .get_matches();
     
     let mut broker = Broker {
+        active_page: BrokerPage::GpioRegs,
         boards: vec![],
         is_paused: false,
         reg_memory: utils::init_shared_memory(),
@@ -154,6 +162,7 @@ pub fn main() -> Result<(), failure::Error> {
 
     loop {
         terminal.draw(|mut f| {
+            // #region Application Layout
             let root_layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
@@ -162,15 +171,30 @@ pub fn main() -> Result<(), failure::Error> {
                     Constraint::Percentage(get_body_margin(f.size(), 128)),
                 ].as_ref())
                 .split(f.size());
-            let body_layout = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3),  // SimPi Header
-                    Constraint::Length(9),  // GPIO Regs
-                    Constraint::Length(32), // Board
-                    Constraint::Length(3),  // Footer
-                ].as_ref())
-                .split(root_layout[1]);
+            let body_layout = match broker.active_page {
+                BrokerPage::GpioRegs => {
+                    Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([
+                            Constraint::Length(3),  // SimPi Header
+                            Constraint::Length(9),  // GPIO Regs
+                            Constraint::Length(64), // Board
+                        ].as_ref())
+                        .split(root_layout[1])
+                },
+                _ => {
+                    Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([
+                            Constraint::Length(3),  // SimPi Header
+                            Constraint::Length(64), // Page Content
+                        ].as_ref())
+                        .split(root_layout[1])
+                }
+            };
+            // #endregion Application Layout
+            
+            // #region Application Header UI
             let header_cmd_style = Style::default()
                 .fg(Color::Black)
                 .bg(Color::White);
@@ -183,16 +207,24 @@ pub fn main() -> Result<(), failure::Error> {
             let header_text = [
                 Text::raw(" "),
                 Text::styled("F1", header_key_style),
-                Text::styled("Help[NYI]", header_cmd_style),
+                Text::styled(
+                    if let BrokerPage::Help = broker.active_page { "Close Help" } else { "Help" },
+                header_cmd_style),
                 Text::raw(" "),
                 Text::styled("F2", header_key_style),
-                Text::styled("Board Manager[NYI]", header_cmd_style),
+                Text::styled(
+                    if let BrokerPage::BoardManager = broker.active_page { "Close Board Manager" } else { "Board Manager" },
+                header_cmd_style),
                 Text::raw(" "),
-                Text::styled("F6", header_key_style),
-                Text::styled("Preferences[NYI]", header_cmd_style),
+                Text::styled("F3", header_key_style),
+                Text::styled(
+                    if let BrokerPage::Preferences = broker.active_page { "Close Preferences" } else { "Preferences" },
+                header_cmd_style),
                 Text::raw(" "),
                 Text::styled("F7", header_key_style),
-                Text::styled(if broker.is_paused { "Play " } else { "Pause" }, header_cmd_style),
+                Text::styled(
+                    if broker.is_paused { "Play " } else { "Pause" },
+                header_cmd_style),
                 Text::raw(" "),
                 Text::styled("F8", header_key_style),
                 Text::styled("Reset", header_cmd_style_red),
@@ -207,89 +239,139 @@ pub fn main() -> Result<(), failure::Error> {
                 )
                 .alignment(Alignment::Right)
                 .render(&mut f, body_layout[0]);
+            // #endregion Application Header UI
             
-            let gpioregs_layout = Layout::default()
-                .direction(Direction::Horizontal)
-                .margin(1)
-                .constraints([
-                    Constraint::Length(10),
-                    Constraint::Min(1),
-                ].as_ref())
-                .split(body_layout[1]);
-            Block::default()
-                .title(" GPIO Registers ")
-                .borders(Borders::ALL)
-                .render(&mut f, body_layout[1]);
-            let gpioregs_names = [
-                Text::raw("\n"),
-                Text::raw("INPUT\n"),
-                Text::raw("OUTPUT\n"),
-                Text::raw("CONFIG\n"),
-                Text::raw("INTEN\n"),
-                Text::raw("INT0\n"),
-                Text::raw("INT1\n"),
-            ];
-            Paragraph::new(gpioregs_names.iter())
-                .block(Block::default())
-                .alignment(Alignment::Left)
-                .render(&mut f, gpioregs_layout[0]);
-            if broker.reg_memory.is_ok() {
-                let mut data = vec![
-                    Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
-                ];
-                if broker.is_paused {
-                    let reg_memory = broker.reg_memory_snapshot;
-                    for reg in [
-                        reg_memory.input,
-                        reg_memory.output,
-                        reg_memory.config,
-                        reg_memory.inten,
-                        reg_memory.int0,
-                        reg_memory.int1,
-                    ].iter() {
-                        reg_to_styled(&reg, &mut data);
-                    }
-                } else {
-                    let mut reg_memory = ShMem::wlock(&mut broker.reg_memory);
-                    for reg in [
-                        reg_memory.input,
-                        reg_memory.output,
-                        reg_memory.config,
-                        reg_memory.inten,
-                        reg_memory.int0,
-                        reg_memory.int1,
-                    ].iter() {
-                        reg_to_styled(&reg, &mut data);
-                    }
-                    for board in broker.boards.iter_mut() {
-                        board.sync(&mut reg_memory);
-                    }
-                }
-                Paragraph::new(data.iter())
-                    .block(Block::default())
-                    .alignment(Alignment::Right)
-                    .render(&mut f, gpioregs_layout[1]);
-                for board in broker.boards.iter_mut() {
-                    board.render(&mut f, body_layout[2]);
-                }
-            } else {
-                Paragraph::new([
-                    Text::raw(format!(
-                        "{}", broker.reg_memory.as_ref().err().unwrap()
-                    ))
-                ].iter())
-                    .block(Block::default().borders(Borders::TOP))
-                    .alignment(Alignment::Right)
-                    .render(&mut f, gpioregs_layout[1]);
-            };
+            // #region Application Body UI
+            match broker.active_page {
+                BrokerPage::GpioRegs => {
+                    let gpioregs_layout = Layout::default()
+                        .direction(Direction::Horizontal)
+                        .margin(1)
+                        .constraints([
+                            Constraint::Length(10),
+                            Constraint::Min(1),
+                        ].as_ref())
+                        .split(body_layout[1]);
+                    Block::default()
+                        .title(" GPIO Registers ")
+                        .borders(Borders::ALL)
+                        .render(&mut f, body_layout[1]);
+                    let gpioregs_names = [
+                        Text::raw("\n"),
+                        Text::raw("INPUT\n"),
+                        Text::raw("OUTPUT\n"),
+                        Text::raw("CONFIG\n"),
+                        Text::raw("INTEN\n"),
+                        Text::raw("INT0\n"),
+                        Text::raw("INT1\n"),
+                    ];
+                    Paragraph::new(gpioregs_names.iter())
+                        .block(Block::default())
+                        .alignment(Alignment::Left)
+                        .render(&mut f, gpioregs_layout[0]);
+                    if broker.reg_memory.is_ok() {
+                        let mut data = vec![
+                            Text::styled("31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 09 08 07 06 05 04 03 02 01 00 \n", Style::default().fg(Color::DarkGray))
+                        ];
+                        if broker.is_paused {
+                            let reg_memory = broker.reg_memory_snapshot;
+                            for reg in [
+                                reg_memory.input,
+                                reg_memory.output,
+                                reg_memory.config,
+                                reg_memory.inten,
+                                reg_memory.int0,
+                                reg_memory.int1,
+                            ].iter() {
+                                reg_to_styled(&reg, &mut data);
+                            }
+                        } else {
+                            let mut reg_memory = ShMem::wlock(&mut broker.reg_memory);
+                            for reg in [
+                                reg_memory.input,
+                                reg_memory.output,
+                                reg_memory.config,
+                                reg_memory.inten,
+                                reg_memory.int0,
+                                reg_memory.int1,
+                            ].iter() {
+                                reg_to_styled(&reg, &mut data);
+                            }
+                            for board in broker.boards.iter_mut() {
+                                board.sync(&mut reg_memory);
+                            }
+                        }
+                        Paragraph::new(data.iter())
+                            .block(Block::default())
+                            .alignment(Alignment::Right)
+                            .render(&mut f, gpioregs_layout[1]);
+                        for board in broker.boards.iter_mut() {
+                            board.render(&mut f, body_layout[2]);
+                        }
+                    } else {
+                        Paragraph::new([
+                            Text::raw(format!(
+                                "{}", broker.reg_memory.as_ref().err().unwrap()
+                            ))
+                        ].iter())
+                            .block(Block::default().borders(Borders::TOP))
+                            .alignment(Alignment::Right)
+                            .render(&mut f, gpioregs_layout[1]);
+                    };
+                },
+                BrokerPage::Help => {
+                    // Placeholder
+                    Paragraph::new([
+                        Text::raw("This help is not very helpful... (Help [NYI])")
+                    ].iter())
+                        .block(Block::default().borders(Borders::ALL))
+                        .render(&mut f, body_layout[1]);
+                },
+                BrokerPage::BoardManager => {
+                    // Placeholder
+                    Paragraph::new([
+                        Text::raw("Board Manager [NYI]")
+                    ].iter())
+                        .block(Block::default().borders(Borders::ALL))
+                        .render(&mut f, body_layout[1]);
+                },
+                BrokerPage::Preferences => {
+                    // Placeholder
+                    Paragraph::new([
+                        Text::raw("Preferences [NYI]")
+                    ].iter())
+                        .block(Block::default().borders(Borders::ALL))
+                        .render(&mut f, body_layout[1]);
+                },
+            }
+            // #endregion Application Body UI
+            
         }).unwrap_or_default();
 
-        // Event handling
+        // #region Event Handling
         match rx.recv()? {
             BrokerEvent::Input(event) => {
                 match event.code {
                     KeyCode::F(inp) => {
-                        if inp == 7 {
+                        if inp == 1 {
+                            if let BrokerPage::Help = broker.active_page {
+                                broker.active_page = BrokerPage::GpioRegs;
+                            } else {
+                                broker.active_page = BrokerPage::Help;
+                            }
+                        } else if inp == 2 {
+                            if let BrokerPage::BoardManager = broker.active_page {
+                                broker.active_page = BrokerPage::GpioRegs;
+                            } else {
+                                broker.active_page = BrokerPage::BoardManager;
+                            }
+                        } else if inp == 3 {
+                            if let BrokerPage::Preferences = broker.active_page {
+                                broker.active_page = BrokerPage::GpioRegs;
+                            } else {
+                                broker.active_page = BrokerPage::Preferences;
+                            }
+                        } else if inp == 7 {
                             if broker.is_paused {
                                 broker.is_paused = false;
                             } else {
@@ -319,6 +401,7 @@ pub fn main() -> Result<(), failure::Error> {
             BrokerEvent::Tick => {},
             //_ => {}
         }
+        // #endregion Event Handling
     }
     Ok(())
 }
