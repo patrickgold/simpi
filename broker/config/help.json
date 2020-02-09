@@ -1,0 +1,16 @@
+[{
+    "title": "Welcome to SimPi Broker help!",
+    "menuTitle": "Welcome",
+    "body": [
+        "This is the help section of SimPi.",
+        "Browse through the available articles by using <PageUp> and <PageDown>.",
+        "If any questions/bugs/feature requests arise, feel free to open an issue on my GitHub:\nhttps://github.com/patrickgold/simpi",
+        "Anyways, I hope you like this little project and have fun!"
+    ]
+}, {
+    "title": "About SimPi Broker",
+    "menuTitle": "About",
+    "body": [
+        "https://github.com/patrickgold/simpi"
+    ]
+}]

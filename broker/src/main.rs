@@ -57,6 +57,7 @@ enum BrokerPage {
 struct Broker {
     active_page: BrokerPage,
     bm: app::BoardManager,
+    help: app::Help,
     is_paused: bool,
     reg_memory: Result<ShMem, SharedMemError>,
     reg_memory_snapshot: RegMemory,
@@ -117,6 +118,7 @@ pub fn main() -> Result<(), failure::Error> {
     let mut broker = Broker {
         active_page: BrokerPage::GpioRegs,
         bm: app::BoardManager::default(),
+        help: app::Help::default(),
         is_paused: false,
         reg_memory: utils::init_shared_memory(),
         reg_memory_snapshot: RegMemory::new(),
@@ -322,12 +324,7 @@ pub fn main() -> Result<(), failure::Error> {
                     };
                 },
                 BrokerPage::Help => {
-                    // Placeholder
-                    Paragraph::new([
-                        Text::raw("This help is not very helpful... yet! (Help [NYI])")
-                    ].iter())
-                        .block(Block::default().borders(Borders::ALL))
-                        .render(&mut f, body_layout[1]);
+                    broker.help.render(&mut f, body_layout[1])
                 },
                 BrokerPage::BoardManager => {
                     broker.bm.render(&mut f, body_layout[1]);
@@ -397,6 +394,9 @@ pub fn main() -> Result<(), failure::Error> {
                             BrokerPage::BoardManager => {
                                 broker.bm.event_keypress(inp);
                             },
+                            BrokerPage::Help => {
+                                broker.help.event_keypress(inp);
+                            },
                             _ => {}
                         }
                     },
@@ -404,6 +404,9 @@ pub fn main() -> Result<(), failure::Error> {
                         match broker.active_page {
                             BrokerPage::BoardManager => {
                                 broker.bm.event_keypress_special(event.code);
+                            },
+                            BrokerPage::Help => {
+                                broker.help.event_keypress_special(event.code);
                             },
                             _ => {}
                         }
