@@ -514,14 +514,14 @@ dependencies = [
 
 [[package]]
 name = "simpi_broker"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossterm 0.14.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.44 (registry+https://github.com/rust-lang/crates.io-index)",
  "tui 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "utils 0.1.0",
+ "utils 0.2.0",
 ]
 
 [[package]]
@@ -635,7 +635,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "utils"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "shared_memory 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
