@@ -355,22 +355,18 @@ pub fn main() -> Result<(), failure::Error> {
                                 broker.active_page = BrokerPage::GpioRegs;
                             } else {
                                 broker.active_page = BrokerPage::Help;
-                                broker.bm.set_active(false);
                             }
                         } else if inp == 2 {
                             if let BrokerPage::BoardManager = broker.active_page {
                                 broker.active_page = BrokerPage::GpioRegs;
-                                broker.bm.set_active(false);
                             } else {
                                 broker.active_page = BrokerPage::BoardManager;
-                                broker.bm.set_active(true);
                             }
                         } else if inp == 3 {
                             if let BrokerPage::Preferences = broker.active_page {
                                 broker.active_page = BrokerPage::GpioRegs;
                             } else {
                                 broker.active_page = BrokerPage::Preferences;
-                                broker.bm.set_active(false);
                             }
                         } else if inp == 7 {
                             if broker.is_paused {
@@ -392,12 +388,26 @@ pub fn main() -> Result<(), failure::Error> {
                         }
                     },
                     KeyCode::Char(inp) => {
-                        broker.bm.event_keypress(inp);
-                        for board in broker.bm.boards.iter_mut() {
-                            board.event_keypress(inp);
+                        match broker.active_page {
+                            BrokerPage::GpioRegs => {
+                                for board in broker.bm.boards.iter_mut() {
+                                    board.event_keypress(inp);
+                                }
+                            },
+                            BrokerPage::BoardManager => {
+                                broker.bm.event_keypress(inp);
+                            },
+                            _ => {}
                         }
                     },
-                    _ => {}
+                    _ => {
+                        match broker.active_page {
+                            BrokerPage::BoardManager => {
+                                broker.bm.event_keypress_special(event.code);
+                            },
+                            _ => {}
+                        }
+                    }
                 }
             },
             BrokerEvent::Tick => {},
