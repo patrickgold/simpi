@@ -7,7 +7,8 @@
 
 use super::{button::Button, led::Led, part::Part};
 use serde_json::{Value as SerdeValue};
-use std::io::{Error, ErrorKind};
+use std::fs::File;
+use std::io::{Error, ErrorKind, Read};
 use tui::backend::CrosstermBackend;
 use tui::layout::{Rect};
 use tui::style::{Color, Style};
@@ -39,6 +40,23 @@ impl Default for Board {
 }
 
 impl Board {
+    pub fn from_file(file_name: &str) -> Result<Self, Error> {
+        let file = File::open(file_name);
+        if file.is_ok() {
+            let mut file = file.unwrap();
+            let mut data = String::new();
+            file.read_to_string(&mut data).unwrap();
+            let data = serde_json::from_str(data.as_ref()).unwrap();
+            let board = Board::from_json(data);
+            if board.is_ok() {
+                Ok(board.unwrap())
+            } else {
+                Err(board.err().unwrap())
+            }
+        } else {
+            Err(file.err().unwrap())
+        }
+    }
     pub fn from_json(json: SerdeValue) -> Result<Self, Error> {
         match json {
             SerdeValue::Object(map) => {

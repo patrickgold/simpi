@@ -14,13 +14,11 @@ extern crate tui;
 
 use clap::{App, Arg};
 use std::{
-    io::{stdout, Write},
+    io::{Error, stdout, Write},
     sync::mpsc,
     thread,
     time::Duration,
 };
-use std::fs::File;
-use std::io::Read;
 use utils::{
     gpioregs::{Reg, RegMemory},
     shared_memory::*,
@@ -38,13 +36,12 @@ use crossterm::{
 };
 use crossterm::terminal::LeaveAlternateScreen;
 
+mod app;
 mod hardware;
 
 const PROJECT_NAME: &str = "SimPi";
 const APP_NAME: &str = "SimPi Broker";
-const VERSION: &str = "0.1.0";
-
-static GLOBAL_LOCK_ID: usize = 0;
+const VERSION: &str = crate_version!();
 
 enum BrokerEvent<I> {
     Input(I),
@@ -59,7 +56,7 @@ enum BrokerPage {
 
 struct Broker {
     active_page: BrokerPage,
-    boards: Vec<hardware::Board>,
+    bm: app::BoardManager,
     is_paused: bool,
     reg_memory: Result<ShMem, SharedMemError>,
     reg_memory_snapshot: RegMemory,
@@ -89,16 +86,26 @@ fn get_body_margin(rect: Rect, size: u16) -> u16 {
     }
 }
 
+fn load_board(broker: &mut Broker, board_file: &str) -> Result<(), Error> {
+    let board = hardware::Board::from_file(board_file);
+    if board.is_ok() {
+        broker.bm.boards.push(board.unwrap());
+        Ok(())
+    } else {
+        Err(board.err().unwrap())
+    }
+}
+
 pub fn main() -> Result<(), failure::Error> {
     let matches = App::new("SimPi Broker")
-        .version(crate_version!())
+        .version(VERSION)
         .author("Patrick Goldinger <@>")
-        .about("Simulate the Raspberry Pi GPIO on a PC.")
+        .about("Simulate the Raspberry Pi GPIO on a PC")
         .arg(Arg::with_name("board")
             .short("b")
             .long("board")
             .value_name("BOARD")
-            .help("Specify board(s) to load on startup")
+            .help("Space-separated list of boards to load")
             .min_values(1),
         )
         .arg(Arg::with_name("debug")
@@ -109,7 +116,7 @@ pub fn main() -> Result<(), failure::Error> {
     
     let mut broker = Broker {
         active_page: BrokerPage::GpioRegs,
-        boards: vec![],
+        bm: app::BoardManager::default(),
         is_paused: false,
         reg_memory: utils::init_shared_memory(),
         reg_memory_snapshot: RegMemory::new(),
@@ -119,17 +126,11 @@ pub fn main() -> Result<(), failure::Error> {
     if matches.is_present("board") {
         let board_files: Vec<_> = matches.values_of("board").unwrap().collect();
         for board in board_files.iter() {
-            let file = File::open(board);
-            if file.is_ok() {
-                let mut file = file.unwrap();
-                let mut data = String::new();
-                file.read_to_string(&mut data).unwrap();
-                let data = serde_json::from_str(data.as_ref()).unwrap();
-                broker.boards.push(hardware::Board::from_json(data).unwrap());
-            }
+            load_board(&mut broker, board).unwrap_or_default();
         }
     }
 
+    // #region Terminal Setup
     enable_raw_mode()?;
 
     let mut stdout = stdout();
@@ -159,6 +160,7 @@ pub fn main() -> Result<(), failure::Error> {
     });
 
     terminal.clear()?;
+    // #endregion Terminal Setup
 
     loop {
         terminal.draw(|mut f| {
@@ -178,7 +180,7 @@ pub fn main() -> Result<(), failure::Error> {
                         .constraints([
                             Constraint::Length(3),  // SimPi Header
                             Constraint::Length(9),  // GPIO Regs
-                            Constraint::Length(64), // Board
+                            Constraint::Min(1),     // Board
                         ].as_ref())
                         .split(root_layout[1])
                 },
@@ -187,7 +189,7 @@ pub fn main() -> Result<(), failure::Error> {
                         .direction(Direction::Vertical)
                         .constraints([
                             Constraint::Length(3),  // SimPi Header
-                            Constraint::Length(64), // Page Content
+                            Constraint::Min(1),     // Page Content
                         ].as_ref())
                         .split(root_layout[1])
                 }
@@ -234,7 +236,7 @@ pub fn main() -> Result<(), failure::Error> {
             ];
             Paragraph::new(header_text.iter())
                 .block(Block::default()
-                    .title(format!("{}{}{}", " SimPi Broker ", crate_version!(), " ").as_ref())
+                    .title(format!("{}{}{}", " SimPi Broker ", VERSION, " ").as_ref())
                     .borders(Borders::ALL)
                 )
                 .alignment(Alignment::Right)
@@ -297,7 +299,7 @@ pub fn main() -> Result<(), failure::Error> {
                             ].iter() {
                                 reg_to_styled(&reg, &mut data);
                             }
-                            for board in broker.boards.iter_mut() {
+                            for board in broker.bm.boards.iter_mut() {
                                 board.sync(&mut reg_memory);
                             }
                         }
@@ -305,7 +307,7 @@ pub fn main() -> Result<(), failure::Error> {
                             .block(Block::default())
                             .alignment(Alignment::Right)
                             .render(&mut f, gpioregs_layout[1]);
-                        for board in broker.boards.iter_mut() {
+                        for board in broker.bm.boards.iter_mut() {
                             board.render(&mut f, body_layout[2]);
                         }
                     } else {
@@ -322,18 +324,13 @@ pub fn main() -> Result<(), failure::Error> {
                 BrokerPage::Help => {
                     // Placeholder
                     Paragraph::new([
-                        Text::raw("This help is not very helpful... (Help [NYI])")
+                        Text::raw("This help is not very helpful... yet! (Help [NYI])")
                     ].iter())
                         .block(Block::default().borders(Borders::ALL))
                         .render(&mut f, body_layout[1]);
                 },
                 BrokerPage::BoardManager => {
-                    // Placeholder
-                    Paragraph::new([
-                        Text::raw("Board Manager [NYI]")
-                    ].iter())
-                        .block(Block::default().borders(Borders::ALL))
-                        .render(&mut f, body_layout[1]);
+                    broker.bm.render(&mut f, body_layout[1]);
                 },
                 BrokerPage::Preferences => {
                     // Placeholder
@@ -358,18 +355,22 @@ pub fn main() -> Result<(), failure::Error> {
                                 broker.active_page = BrokerPage::GpioRegs;
                             } else {
                                 broker.active_page = BrokerPage::Help;
+                                broker.bm.set_active(false);
                             }
                         } else if inp == 2 {
                             if let BrokerPage::BoardManager = broker.active_page {
                                 broker.active_page = BrokerPage::GpioRegs;
+                                broker.bm.set_active(false);
                             } else {
                                 broker.active_page = BrokerPage::BoardManager;
+                                broker.bm.set_active(true);
                             }
                         } else if inp == 3 {
                             if let BrokerPage::Preferences = broker.active_page {
                                 broker.active_page = BrokerPage::GpioRegs;
                             } else {
                                 broker.active_page = BrokerPage::Preferences;
+                                broker.bm.set_active(false);
                             }
                         } else if inp == 7 {
                             if broker.is_paused {
@@ -391,7 +392,8 @@ pub fn main() -> Result<(), failure::Error> {
                         }
                     },
                     KeyCode::Char(inp) => {
-                        for board in broker.boards.iter_mut() {
+                        broker.bm.event_keypress(inp);
+                        for board in broker.bm.boards.iter_mut() {
                             board.event_keypress(inp);
                         }
                     },
@@ -403,5 +405,6 @@ pub fn main() -> Result<(), failure::Error> {
         }
         // #endregion Event Handling
     }
+
     Ok(())
 }
