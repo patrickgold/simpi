@@ -8,6 +8,23 @@
         "Anyways, I hope you like this little project and have fun!"
     ]
 }, {
+    "title": "Compiling wiringPi programs",
+    "menuTitle": "Compiling",
+    "body": [
+        "To build and run a wiringPi project, you must link your program with the wpisim library.",
+        "Linux:\n$ gcc myProgram.c -o myProgram -lwpisim",
+        "Windows:\nYou need to link the wpisim.dll.lib with your wiringPi source code in Visual Studio C++. Then you need to copy the wpisim.dll into the same folder as the built exe. Then you can run your wiringPi program and it should connect with the broker. Note: the dll files are located in the program files folder.",
+        "After building, make sure the broker is opened and run your program. You should see the pins change on the Gpio Regs pane. If you have also added a board to the broker, you can also see the LEDs change. Each button has a shortcut assigned to it, which will toggle the button's state on press."
+    ]
+}, {
+    "title": "Creating boards",
+    "menuTitle": "Creating boards",
+    "body": [
+        "To add a board to SimPi, you must create a board.json file (call it how you want) and configure your board there.",
+        "Example board:\nhttps://github.com/patrickgold/simpi/blob/master/broker/config/gpiotest-board.json",
+        "Schema file defining all the properties and describing them:\nhttps://patrickgold.dev/simpi/schemas/board.json"
+    ]
+}, {
     "title": "About SimPi Broker",
     "menuTitle": "About",
     "body": [

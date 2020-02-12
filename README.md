@@ -1,4 +1,4 @@
-# SimPi 0.1.0
+# SimPi 0.2.0
 A tool for simulating wiringPi projects written for the Raspberry Pi on
 Windows and GNU/Linux.
 
@@ -12,16 +12,26 @@ intended or may behave unexpectedly!*
 * Allows you to build and run programs written with the wringPi library
 * Supports most of the original library functions (including interrupts)
 * Works on GNU/Linux and Windows
-* Lets you build your own board(s) and display it in the broker
+* Board Manager
+  * Lets you build your own board(s) and display it in the broker
   * Supports LEDs and Buttons for now, see [schemas](docs/schemas/) for more
     information on how to properly config a board
 
-## Planned Features
-* Proper board manager
-* Saving preferences
-* Custom themes
+### Planned
+* Support of `softPwm.h` library (part of wiringPi)
+* Preferences manager
+* More detailed wiki (both on GitHub and inside the app)
+* Custom themes (big maybe)
 
 ## Installation
+
+### From precompiled package
+Go to the [releases](https://github.com/patrickgold/simpi/releases) tab and
+download the archive of the latest release targeted at your system
+(currently only Windows 64bit and Linux 64bit are supported out-of-the-box).
+Unpack it, locate the install script within the `simpi` folder and run it.
+
+*Important: If you are on Windows, right click `install.bat` and click "Run as administrator" instead of just double clicking or the installation will fail!*
 
 ### From Source (GNU/Linux)
 *Prerequisites:*
