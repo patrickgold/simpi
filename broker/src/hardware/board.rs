@@ -41,20 +41,31 @@ impl Default for Board {
 
 impl Board {
     pub fn from_file(file_name: &str) -> Result<Self, Error> {
-        let file = File::open(file_name);
-        if file.is_ok() {
-            let mut file = file.unwrap();
-            let mut data = String::new();
-            file.read_to_string(&mut data).unwrap();
-            let data = serde_json::from_str(data.as_ref()).unwrap();
-            let board = Board::from_json(data);
-            if board.is_ok() {
-                Ok(board.unwrap())
-            } else {
-                Err(board.err().unwrap())
+        match File::open(file_name) {
+            Ok(mut file) => {
+                let mut data = String::new();
+                match file.read_to_string(&mut data) {
+                    Ok(_) => {
+                        match serde_json::from_str(data.as_ref()) {
+                            Ok(data) => {
+                                return Board::from_json(data);
+                            },
+                            Err(err) => {
+                                return Err(Error::new(
+                                    ErrorKind::InvalidData,
+                                    format!("Error while deserializing given board: {}", err)
+                                ));
+                            }
+                        }
+                    },
+                    Err(err) => {
+                        return Err(err);
+                    }
+                }
+            },
+            Err(err) => {
+                return Err(err);
             }
-        } else {
-            Err(file.err().unwrap())
         }
     }
     pub fn from_json(json: SerdeValue) -> Result<Self, Error> {
@@ -177,6 +188,20 @@ impl Board {
         }
         self
     }
+    pub fn get_hardware_summary(&self) -> String {
+        if self.hardware.len() == 0 {
+            return String::from("None");
+        }
+        let mut led_count = 0;
+        let mut btn_count = 0;
+        for part in self.hardware.iter() {
+            match part {
+                Part::Led(_) => { led_count += 1; } ,
+                Part::Button(_) => { btn_count += 1; },
+            }
+        }
+        format!("{}x Leds | {}x Buttons", led_count, btn_count)
+    }
     pub fn render(
         &self, f: &mut Frame<'_, CrosstermBackend<std::io::Stdout>>, area: Rect
     ) {
@@ -188,10 +213,8 @@ impl Board {
             ..area
         };
         Block::default()
-            .title(self.name.as_ref())
-            .title_style(Style::default().fg(self.foreground_color))
+            .title(format!(" {} ", self.name.as_str()).as_str())
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(self.foreground_color))
             .style(Style::default().bg(self.background_color))
             .render(f, board_area);
         for part in self.hardware.iter() {

@@ -202,7 +202,7 @@ impl BoardManager {
                 (i+1).to_string(),
                 board.name.clone(),
                 board.width.to_string() + "x" + &board.height.to_string(),
-                "[NYI]".to_owned(),
+                board.get_hardware_summary(),
             ].into_iter(), style)
         });
         Table::new(table_header.iter(), table_rows)
@@ -269,7 +269,28 @@ impl BoardManager {
         match self.active_tab {
             1 => {
                 if let FocusArea::Field = self.current_focus_area {
-                    self.boards[self.active_content-1].render(f, tc_layout[1]);
+                    let preview_layout = Layout::default()
+                        .direction(Direction::Vertical)
+                        .constraints([
+                            Constraint::Length(2),     // Heading
+                            Constraint::Min(1),        // Content
+                        ].as_ref())
+                        .split(tc_layout[1]);
+                    let b = self.boards.get(self.active_content-1).unwrap();
+                    Paragraph::new([
+                        Text::styled("Preview of '",
+                            Style::default().modifier(Modifier::BOLD)
+                        ),
+                        Text::styled(b.name.as_str(),
+                            Style::default().modifier(Modifier::BOLD)
+                        ),
+                        Text::styled("'",
+                            Style::default().modifier(Modifier::BOLD)
+                        ),
+                    ].iter())
+                        .wrap(true)
+                        .render(f, preview_layout[0]);
+                    b.render(f, preview_layout[1]);
                 } else {
                     self.render_list(f, tc_layout[1], true);
                 }
@@ -281,7 +302,7 @@ impl BoardManager {
                         .constraints([
                             Constraint::Length(2),     // Heading
                             Constraint::Min(1),        // Content
-                            Constraint::Length(4),     // Bottom Question
+                            Constraint::Length(2),     // Bottom Question
                         ].as_ref())
                         .split(tc_layout[1]);
                     if self.tmp_open_board.is_ok() {
@@ -327,7 +348,7 @@ impl BoardManager {
                             .wrap(true)
                             .render(f, preview_layout[1]);
                         Paragraph::new([
-                            Text::raw("<Enter> Exit        <ESC> Back\n"),
+                            Text::raw("<Enter> Exit        <Esc> Modify input file path\n"),
                         ].iter())
                             .wrap(true)
                             .render(f, preview_layout[2]);
@@ -362,7 +383,7 @@ impl BoardManager {
                         Text::raw(self.boards[self.active_content-1].name.as_str()),
                         Text::raw("'?\n\n"),
                         Text::raw("Note, that this action will NOT delete the JSON board file. If the selected board was a temporary board however, it will be deleted permanently!\n\n"),
-                        Text::raw(" <y> Yes\n <n> No"),
+                        Text::raw("<y> Yes       <n> No"),
                     ].iter())
                         .wrap(true)
                         .render(f, tc_layout[1]);
@@ -381,7 +402,7 @@ impl BoardManager {
         }
         // Draw footer
         Paragraph::new([
-            Text::raw("<Up/Down Arrow> to move cursor, <Enter> to confirm, <ESC> to cancel"),
+            Text::raw("<Up/Down Arrow> to move cursor, <Enter> to confirm, <Esc> to cancel"),
         ].iter())
             .block(Block::default().borders(Borders::TOP))
             .render(f, tc_layout[2]);
