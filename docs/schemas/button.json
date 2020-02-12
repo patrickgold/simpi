@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
-    "$id": "https://patrickgold.github.io/simpi/schemas/button.json",
+    "$id": "https://patrickgold.dev/simpi/schemas/button.json",
     "title": "SimPi Button Configuration",
     "description": "Describes a button to be used on a board",
     "type": "object",
