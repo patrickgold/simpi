@@ -27,16 +27,18 @@ simpi_uninstall () {
     esac
 
     # #0 - Delete folders
-    echo "Deleting folders..."
+    echo "Remove SimPi program files..."
     sudo rm -rf "$prog_files_dir"
     sudo rm "/usr/local/include/wiringPi.h"
     sudo rm "/usr/local/lib/libwpisim.d"
     sudo rm "/usr/local/lib/libwpisim.so"
+    echo "Remove menu entry..."
     sudo rm "$start_menu_dir/$app_id.desktop"
 
     # #1 - Done
+    echo
     read -n 1 -s -r -p "Done! Press any key to continue..."
-    echo -e "\n"
+    echo
 }
 
 simpi_uninstall

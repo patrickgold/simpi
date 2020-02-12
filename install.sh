@@ -74,6 +74,7 @@ STEP_add_start_menu_entry () {
     touch "$start_menu_dir/$app_id.desktop"
     echo "[Desktop Entry]
     Name=$app_name
+    Comment=A tool for simulating WiringPi projects
     Exec=$prog_files_dir/simpi_broker
     Path=$prog_files_dir
     Terminal=true

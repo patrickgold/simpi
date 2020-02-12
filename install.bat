@@ -6,6 +6,8 @@ if %errorLevel% == 0 (
 ) else (
     echo [FAIL] This script must be run with admin rights.
     echo        Right click 'install.bat' and select 'Run as administrator' or use an elevated cmd session.
+    echo Press any key to continue...
+    pause >nul
     exit /b
 )
 setlocal

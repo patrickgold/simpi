@@ -6,6 +6,8 @@ if %errorLevel% == 0 (
 ) else (
     echo [FAIL] This script must be run with admin rights.
     echo        Right click 'install.bat' and select 'Run as administrator' or use an elevated cmd session.
+    echo Press any key to continue...
+    pause >nul
     exit /b
 )
 setlocal
@@ -24,7 +26,7 @@ echo Copy files to install folder...
 xcopy "simpi_broker.exe" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "app_icon.ico" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "lib\wpisim.dll" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
-xcopy "lib\wpisim.dll.lib" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
+xcopy "lib\wpisim.d" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "lib\wiringPi.h" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "LICENSE" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1
 xcopy "README.md" "%_PROGRAM_FILES_DIR%" /Y >nul 2>&1

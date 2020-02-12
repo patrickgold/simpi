@@ -57,9 +57,9 @@ STEP_build () {
     #     exit 1
     # fi
     if [ "$CURR_OS_ID" == "windows" ]; then
-        cp "./target/release/simpi_broker.exe" "$PACK_PATH/simpi"
+        cp "./target/$CURR_TARGET/release/simpi_broker.exe" "$PACK_PATH/simpi"
     else
-        cp "./target/release/simpi_broker" "$PACK_PATH/simpi"
+        cp "./target/$CURR_TARGET/release/simpi_broker" "$PACK_PATH/simpi"
     fi
     cd $PACK_PATH
 
@@ -72,11 +72,11 @@ STEP_build () {
     # fi
     mkdir "$PACK_PATH/simpi/lib"
     if [ "$CURR_OS_ID" == "windows" ]; then
-        cp "./target/release/wpisim.dll" "$PACK_PATH/simpi/lib"
-        cp "./target/release/wpisim.dll.lib" "$PACK_PATH/simpi/lib"
+        cp "./target/$CURR_TARGET/release/wpisim.dll" "$PACK_PATH/simpi/lib"
+        cp "./target/$CURR_TARGET/release/wpisim.d" "$PACK_PATH/simpi/lib"
     else
-        cp "./target/release/libwpisim.d" "$PACK_PATH/simpi/lib"
-        cp "./target/release/libwpisim.so" "$PACK_PATH/simpi/lib"
+        cp "./target/$CURR_TARGET/release/libwpisim.d" "$PACK_PATH/simpi/lib"
+        cp "./target/$CURR_TARGET/release/libwpisim.so" "$PACK_PATH/simpi/lib"
     fi
     cd $PACK_PATH
 }
@@ -101,15 +101,17 @@ STEP_copy_files () {
 STEP_make_package () {
     HELPER_echo_step "Compress and zip all files"
 
-    cd out
     if [ "$CURR_OS_ID" == "windows" ]; then
-        zip -r "simpi-${CURR_OS_NAME}.zip" "../simpi"
+        zip -r "out/simpi-${CURR_OS_NAME}.zip" "simpi"
+        cd out
         sha256sum "simpi-${CURR_OS_NAME}.zip" > "simpi-${CURR_OS_NAME}.sha256"
+        cd ..
     else
-        tar -czvf "simpi-${CURR_OS_NAME}.tar.gz" "../simpi"
+        tar -czvf "out/simpi-${CURR_OS_NAME}.tar.gz" "simpi"
+        cd out
         sha256sum "simpi-${CURR_OS_NAME}.tar.gz" > "simpi-${CURR_OS_NAME}.sha256"
+        cd ..
     fi
-    cd ..
 }
 
 build () {
